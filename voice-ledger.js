@@ -57,7 +57,7 @@ window.voiceLedgerAmountDigit=function(value){
 };
 window.voiceLedgerAmountSubmit=function(kind){
  const input=document.getElementById("voiceAmountInput");
- const amount=Number(String(input?.value||"").replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(",","."));
+ const amount=Number(String(input?.value||"").replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace("٫",".").replace(",","."));
  if(!Number.isFinite(amount)||amount<=0){toast("أدخل مبلغاً صحيحاً");return;}
  document.getElementById("voiceAmountDialog")?.remove();
  voiceLedgerSaveQuick(kind,amount);
@@ -73,20 +73,38 @@ window.voiceLedgerQuick=function(kind){
 window.voiceLedgerListen=function(text){if(typeof speakText==="function")speakText(text,"ar-SA");else if("speechSynthesis" in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="ar-SA";speechSynthesis.speak(u);}else toast("الاستماع الصوتي غير مدعوم في هذا المتصفح");};
 window.voiceLedgerDelete=function(id){if(!confirm("حذف هذا السجل؟"))return;RB.remove(id);render();};
 window.voiceLedgerStart=function(){
+ if(listening){toast("الميكروفون يعمل بالفعل");return;}
  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(!SR){toast("التسجيل الصوتي النصي يحتاج متصفح Chrome حديثاً");return;}
- const r=new SR();r.lang="ar-SA";r.interimResults=false;r.maxAlternatives=3;
- listening=true;const b=document.getElementById("micBtn");if(b)b.classList.add("rec");
- toast("تحدث الآن بوضوح...");
+ let r;
+ try{r=new SR();}catch(e){toast("تعذر تشغيل خدمة التعرف على الكلام");return;}
+ r.lang="ar-SA";r.interimResults=false;r.maxAlternatives=3;
+ const setMicState=active=>{
+  listening=active;
+  const b=document.getElementById("micBtn");
+  if(b)b.classList.toggle("rec",active);
+ };
+ r.onstart=()=>{setMicState(true);toast("تحدث الآن بوضوح...");};
  r.onresult=e=>{
-  const result=e.results[0];const transcript=result[0].transcript;
+  const result=e.results&&e.results[0],transcript=result&&result[0]&&result[0].transcript;
+  if(!transcript){toast("لم أسمع عبارة واضحة، حاول مجدداً");return;}
   pending=parseSpoken(transcript);
   if(pending.error){const msg=pending.error;pending=null;toast(msg);return;}
   render();go("voice");
  };
- r.onerror=e=>toast(e.error==="not-allowed"?"يرجى السماح باستخدام الميكروفون": "تعذر التعرف على الكلام، حاول مجدداً");
- r.onend=()=>{listening=false;const b=document.getElementById("micBtn");if(b)b.classList.remove("rec");};
- try{r.start();}catch(e){listening=false;toast("الميكروفون مشغول، حاول بعد لحظة");}
+ r.onnomatch=()=>toast("لم أتعرف على الكلمات. جرّب التحدث ببطء ووضوح");
+ r.onerror=e=>{
+  const messages={
+   "not-allowed":"يرجى السماح باستخدام الميكروفون من إعدادات الموقع",
+   "service-not-allowed":"خدمة التعرف على الكلام غير متاحة لهذا المتصفح",
+   "no-speech":"لم أسمع صوتاً. تأكد من الميكروفون وحاول مجدداً",
+   "audio-capture":"تعذر الوصول إلى الميكروفون. تحقق من أذونات الجهاز",
+   "network":"تعذر الاتصال بخدمة التعرف على الكلام"
+  };
+  toast(messages[e.error]||"تعذر التعرف على الكلام، حاول مجدداً");
+ };
+ r.onend=()=>setMicState(false);
+ try{r.start();}catch(e){setMicState(false);toast("الميكروفون مشغول أو لم يستجب، حاول بعد لحظة");}
 };
 window.voiceCapture=window.voiceLedgerStart;
 TABS.voice=["🎙️","السجل الصوتي"];
