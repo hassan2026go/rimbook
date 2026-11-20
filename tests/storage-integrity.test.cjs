@@ -101,11 +101,13 @@ function createHarness(initial = "{}") {
 
 {
   const voiceLedger = fs.readFileSync("voice-ledger.js", "utf8");
-  const helperMatch = voiceLedger.match(/function applyWorkReversal\\(data,id,reason,now,newId\\)\\{[\\s\\S]*?\\n\\}/);
-  assert.ok(helperMatch, "financial reversal helper must exist for transaction integration");
-  const applyWorkReversal = vm.runInNewContext("(" + helperMatch[0] + ")");
+  const helperStart = voiceLedger.indexOf("function applyWorkReversal(");
+  const helperEnd = voiceLedger.indexOf("\n}", helperStart);
+  assert.ok(helperStart >= 0 && helperEnd > helperStart, "financial reversal helper must exist for transaction integration");
+  const helperSource = voiceLedger.slice(helperStart, helperEnd + 2);
+  const applyWorkReversal = vm.runInNewContext("(" + helperSource + ")");
   const reverseStart = voiceLedger.indexOf("window.reverseWorkEntry=function(id){");
-  const reverseEnd = voiceLedger.indexOf("\\n};", reverseStart);
+  const reverseEnd = voiceLedger.indexOf("\n};", reverseStart);
   assert.ok(reverseStart >= 0 && reverseEnd > reverseStart, "reverse action handler must exist");
   const reverseSource = voiceLedger.slice(reverseStart, reverseEnd + 3);
   const h = createHarness();
