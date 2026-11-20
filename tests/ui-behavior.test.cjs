@@ -141,4 +141,12 @@ assert.ok(receipts.includes("ملغى بقيد عكسي موثق"));
   assert.equal(data.items.length, 1, "invalid correction must not change data");
 }
 
+assert.ok(pro.includes('if(profile.role==="worker")'), "worker must receive a dedicated simplified home screen");
+for (const action of ["work", "holiday", "payment", "advance", "expense"]) {
+  assert.ok(pro.includes("voiceLedgerQuick(\\'" + action + "\\')"), "worker home must expose the " + action + " quick action");
+}
+assert.ok(pro.includes("voiceLedgerStart()"), "worker home must expose speech input");
+assert.ok(pro.includes("مراجعة حسابي وسجل الحركات"), "worker home must provide a clear route to their ledger");
+assert.ok(voiceLedger.includes("راجع ما فهمه التطبيق قبل الحفظ"), "speech entries must be reviewed before saving");
+
 console.log("UI behavior tests passed.");
