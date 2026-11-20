@@ -6,7 +6,7 @@
  window.addReminder=function(){
   const val=id=>document.getElementById(id)?.value?.trim()||"",title=val("rm-title"),date=val("rm-date"),time=val("rm-time"),category=val("rm-category");
   if(!title)return toast("اكتب عنوان التذكير");if(!date)return toast("حدد التاريخ");if(date<today())return toast("اختر اليوم أو تاريخاً قادماً");
-  RB.add({type:"event",title,d:date,t:time||"09:00",project:D.activeProject||null,reminderCategory:category,reminderEnabled:true,reminderLead:15});
+  RB.add({type:"event",title,d:date,t:time||"09:00",project:RB.data.activeProject||null,reminderCategory:category,reminderEnabled:true,reminderLead:15});
   render();toast("تم حفظ التذكير");
  };
  window.deleteReminder=function(id){if(!confirm("حذف هذا التذكير؟"))return;RB.remove(id);render();toast("تم حذف التذكير");};
@@ -22,4 +22,5 @@
  if(!ROLES.employee.tabs.includes("reminders"))ROLES.employee.tabs.splice(3,0,"reminders");
  if(!ROLES.worker.tabs.includes("reminders"))ROLES.worker.tabs.splice(3,0,"reminders");
  VIEWS.reminders=remindersScreen;
+ render();
 })();
