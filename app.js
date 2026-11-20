@@ -165,7 +165,7 @@ function searchRimbook(raw) {
   (RB.data.invoices||[]).forEach(inv=>add("invoice",inv.id,"فاتورة #"+(inv.number||""),[inv.client,inv.date].filter(Boolean).join(" · "),inv,"projects"));
   const shown=results.slice(0,20);
   box.innerHTML=shown.length
-    ? '<div class="search-heading">نتائج البحث ('+results.length+')</div>'+shown.map(r=>'<button type="button" class="search-hit" onclick="openSearchResult(\''+r.route+'\',\''+encodeURIComponent(String(r.id||""))+'\')"><b>'+esc(r.title)+'</b><small>'+esc(r.subtitle||r.kind)+'</small></button>').join("")+(results.length>20?'<p class="muted">أظهرنا أول 20 نتيجة. أضف كلمات أدق لتضييق البحث.</p>':"")
+    ? '<div class="search-heading">نتائج البحث ('+results.length+')</div>'+shown.map(r=>'<button type="button" class="search-hit" onclick="openSearchResult(\''+r.kind+'\',\''+r.route+'\',\''+encodeURIComponent(String(r.id||""))+'\')"><b>'+esc(r.title)+'</b><small>'+esc(r.subtitle||r.kind)+'</small></button>').join("")+(results.length>20?'<p class="muted">أظهرنا أول 20 نتيجة. أضف كلمات أدق لتضييق البحث.</p>':"")
     : '<p class="search-empty">لا توجد نتائج مطابقة. جرّب اسماً أو كلمة أخرى.</p>';
   box.hidden=false;
 }
