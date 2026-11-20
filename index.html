@@ -79,11 +79,25 @@ pre{overflow-x:auto}
 <nav id="tabs"></nav>
 <script>
 window.addEventListener("error",function(e){var v=document.getElementById("view");if(v)v.innerHTML='<div class=card style="color:#f43f5e">خطأ: '+(e.message||"")+' ('+(e.lineno||"")+')</div>';});
-</script>
 <script src="app.js"></script>
+<script>
+  // هذا السطر يضمن أن التطبيق لا يحاول الرسم إلا بعد تحميل app.js بالكامل
+  window.onload = function() {
+    if (typeof render === 'function') render();
+  };
+</script>
 <script src="sync.js"></script>
 <script src="integrations.js"></script>
 <script src="charts.js"></script>
 <script src="push.js"></script>
+<script src="invoices.js"></script>
+<script src="currency.js"></script>
+<script src="contacts.js"></script>
+<script src="attachments.js"></script>
+<script src="tts.js"></script>
+<script src="i18n.js"></script>
+<script src="ai-suggest.js"></script>
+<script src="crypto.js"></script>
+<script src="compare.js"></script>
 </body>
 </html>
