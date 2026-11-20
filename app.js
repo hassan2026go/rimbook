@@ -573,7 +573,7 @@ async function installApp(){
     const {outcome} = await deferredPrompt.userChoice;
     deferredPrompt = null;
     if(outcome==="accepted" && btn) btn.hidden=true;
-    return;
+    // لا تقم بتشغيل الرسم هنا، لأن index.html سيقوم بذلك بعد تحميل كل الملفات;
   }
   if(isIOS()) alert("iPhone:\n1) زر المشاركة ⬆️\n2) إضافة إلى الشاشة الرئيسية");
   else alert("من قائمة المتصفح ⋮ اختر «تثبيت التطبيق»");
