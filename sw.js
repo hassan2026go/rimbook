@@ -2,6 +2,7 @@ const CACHE_NAME = "rimbook-pwa-v7";
 const APP_FILES = [
   "./",
   "./index.html",
+  "./activation.js",
   "./manifest.webmanifest",
   "./app.js",
   "./sync.js",
