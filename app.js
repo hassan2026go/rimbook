@@ -133,6 +133,8 @@ function saveProfileField(key, value) {
   if (key === "role" && !["employee","worker"].includes(v)) return;
   RB.data.profile[key] = key === "phone" ? normalizeProfileDigits(v) : v;
   if (!RB.save()) { toast("تعذر الحفظ: مساحة التخزين في الجهاز ممتلئة"); return; }
+  if (key === "role") render();
+  if (key === "name") { const heading = $("#profile-display-name"); if (heading) heading.textContent = RB.data.profile.name || "الملف الشخصي"; }
   toast("تم حفظ بيانات الملف الشخصي");
 }
 function removeProfilePhoto() {
@@ -190,7 +192,7 @@ VIEWS.profile = () => {
     '<input id="profile-' + key + '" type="' + (type || "text") + '" value="' + esc(p[key] || "") + '" placeholder="' + (placeholder || "") +
     '" onchange="saveProfileField(\'' + key + '\',this.value)" style="width:100%;margin:4px 0 12px">';
   return '<div class="card" style="text-align:center">' + avatar +
-    '<h2 style="margin:8px 0">' + esc(p.name || "الملف الشخصي") + '</h2>' +
+    '<h2 id="profile-display-name" style="margin:8px 0">' + esc(p.name || "الملف الشخصي") + '</h2>' +
     '<p class="muted">بياناتك محفوظة على هذا الجهاز، ولا تُرسل إلى أي خدمة تلقائياً.</p>' +
     '<label class="p" for="profile-photo" style="display:inline-block;padding:8px 14px;border-radius:10px;cursor:pointer;color:#fff;background:var(--p)">📷 اختيار صورة</label>' +
     '<input id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" onchange="saveProfilePhoto(this)" style="display:none">' +
