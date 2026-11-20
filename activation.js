@@ -71,7 +71,13 @@ function projectOptions(projects, selected) {
   window.addEvent=()=>{const title=$v("etitle").trim();if(!title)return toast("اكتب الموعد");if(!RB.add({type:"event",title,d:$v("edate")||today(),t:$v("etime"),project:selectedProject()}))return;render();};
   window.addNote=()=>{const body=$v("nbody").trim();if(!body)return toast("اكتب الملاحظة");if(!RB.add({type:"note",title:$v("ntitle"),body,d:today(),project:selectedProject()}))return;render();toast("تم حفظ الملاحظة");};
  window.editNote=id=>{const x=D.items.find(i=>i.id===id);if(!x)return;const v=prompt("نص الملاحظة",x.body||"");if(v!==null){x.body=v;RB.save();render();}};
- window.delItem=id=>{if(confirm("حذف العنصر؟")){RB.remove(id);render();}};
+  window.delItem=id=>{
+    const row=D.items.find(item=>String(item.id)===String(id));if(!row)return toast("لم نعثر على السجل");
+    if(row.type==="work")return toast("حذف الحركات المالية متوقف حفاظاً على الحقوق. يجب تصحيحها بقيد عكسي موثق، لا بمحوها.");
+    if(!confirm("هل تريد حذف هذا السجل؟"))return;
+    if(!RB.remove(id))return;
+    render();
+  };
  window.addHabit=()=>{const name=$v("hname").trim();if(!name)return;D.habits.push({id:"h"+Date.now(),name,history:[]});RB.save();render();};
  window.markHabit=id=>{const h=D.habits.find(x=>x.id===id);if(!h)return;h.history=h.history||[];h.history.includes(today())?h.history=h.history.filter(x=>x!==today()):h.history.push(today());RB.save();render();};
  window.delHabit=id=>{D.habits=D.habits.filter(x=>x.id!==id);RB.save();render();};
