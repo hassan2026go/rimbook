@@ -163,10 +163,10 @@ VIEWS.goals=()=>{
   const L=ledgerTotals();
   const rows=list("work").slice().sort((a,b)=>(b.d||"").localeCompare(a.d||"")).map(w=>{
    const status=w.isReversal?'<small class="hi">قيد عكسي</small>':w.reversedBy?'<small class="hi">تم عكسه بقيد موثق</small>':'';
-   const action=!w.isReversal&&!w.reversedBy?'<button type="button" onclick="reverseWorkEntry(\\''+w.id+'\\')">تصحيح بقيد عكسي</button>':'';
+   const action=!w.isReversal&&!w.reversedBy?'<button type="button" onclick="reverseWorkEntry(\''+w.id+'\')">تصحيح بقيد عكسي</button>':'';
    return '<div class=item><span>'+escv(w.ds||w.k)+' '+status+'<br><small>'+escv(w.d)+' · '+(w.due||0)+' / '+(w.rec||0)+(w.correctionReason?' · سبب التصحيح: '+escv(w.correctionReason):w.reversalReason?' · سبب التصحيح: '+escv(w.reversalReason):'')+'</small></span>'+action+'</div>';
   }).join("");
-  return box("تسجيل حركة",select("wtype","النوع",[["work","عمل"],["payment","دفعة"],["expense","مصروف"]],"work")+field("wdate","التاريخ","date","",today())+field("wdesc","البيان","text","وصف الحركة")+field("wdue","المستحق","number","0","0")+field("wrec","الواصل","number","0","0")+field("wot","ساعات إضافية","number","0","0")+projectField()+'<button class=p onclick="addWork()">حفظ</button>')+box("الحسابات",'<p>المستحق: <b>'+L.due.toFixed(2)+'</b> · الواصل: <b>'+L.rec.toFixed(2)+'</b> · المتبقي: <b>'+L.rem.toFixed(2)+'</b> '+escv(D.settings.currency)+'</p>'+rows||empty("لا حركات"));
+  return box("تسجيل حركة",select("wtype","النوع",[["work","عمل"],["payment","دفعة"],["expense","مصروف"]],"work")+field("wdate","التاريخ","date","",today())+field("wdesc","البيان","text","وصف الحركة")+field("wdue","المستحق","number","0","0")+field("wrec","الواصل","number","0","0")+field("wot","ساعات إضافية","number","0","0")+projectField()+'<button class=p onclick="addWork()">حفظ</button>')+box("الحسابات",'<p>المستحق: <b>'+L.due.toFixed(2)+'</b> · الواصل: <b>'+L.rec.toFixed(2)+'</b> · المتبقي: <b>'+L.rem.toFixed(2)+'</b> '+escv(D.settings.currency)+'</p>'+(rows||empty("لا حركات")));
  };
  VIEWS.contacts=()=>typeof contactsScreen==="function"?contactsScreen():empty("جهات الاتصال غير متاحة");
  VIEWS.invoices=()=>box("فواتير المشاريع",D.projects.map(p=>'<div class=item><span>'+escv(p.name)+'</span><button onclick="setActiveProject(\''+p.id+'\')">اختيار</button></div>'+ (typeof invoicesSection==="function"?invoicesSection(p.id):"")).join("")||empty("أنشئ مشروعاً أولاً"));
