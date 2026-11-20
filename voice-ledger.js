@@ -16,7 +16,8 @@ function parseSpoken(raw){
  const amountMatch=s.match(/(\d+(?:[.٫]\d{1,2})?)/);
  const amount=amountMatch?Number(amountMatch[1].replace("٫",".")):0;
  const hasPayment=/(واصل|استلمت|استلم|قبضت|دفعة|دفعه|تسلمت|استلام)/.test(s);
- const hasExpense=/(مصروف|صرف|دفعت|اشتريت|نفقة)/.test(s) && !hasPayment;
+ const hasAdvance=/(سلفة|سلفه|سلف|سلفت)/.test(s);
+ const hasExpense=/(مصروف|صرف|اشتريت|نفقة)/.test(s) && !hasPayment && !hasAdvance;
  const hasHoliday=/(عطلة|اجازة|إجازة|راحة|ما اشتغلت|لم اعمل)/.test(s);
  const hasWork=/(عمل|اشتغلت|دوام|شغل|يوميه|يومية)/.test(s);
  const projectMatch=(D.projects||[]).find(p=>s.includes(normalize(p.name)));
@@ -25,9 +26,10 @@ function parseSpoken(raw){
  if(hasHoliday) out.push({k:"holiday",d:date,ds:"عطلة",due:0,rec:0,ot:0,project});
  else if(hasWork) out.push({k:"work",d:date,ds:"يوم عمل",due:Number(D.settings.dailyRate)||0,rec:0,ot:0,project});
  if(hasPayment) out.push({k:"payment",d:date,ds:"دفعة مستلمة",due:0,rec:amount,ot:0,project});
+ if(hasAdvance) out.push({k:"advance",d:date,ds:"سلفة للعامل",due:0,rec:0,advance:amount,ot:0,project});
  if(hasExpense) out.push({k:"expense",d:date,ds:"مصروف",due:0,rec:0,expense:amount,ot:0,project});
  if(!out.length) return {error:"لم أفهم نوع الحركة. قل مثلاً: عمل، أو عطلة، أو واصل دفعة 10 دولار."};
- if((hasPayment||hasExpense)&&!amount) return {error:"سمعت نوع الحركة لكن لم أتعرف على المبلغ. أعد ذكر الرقم بوضوح."};
+ if((hasPayment||hasExpense||hasAdvance)&&!amount) return {error:"سمعت نوع الحركة لكن لم أتعرف على المبلغ. أعد ذكر الرقم بوضوح."};
  return {date,items:out,project,raw};
 }
 window.voiceLedgerParse=parseSpoken;
@@ -39,6 +41,20 @@ window.voiceLedgerConfirm=function(){
  pending=null;RB.save();render();toast("تم اعتماد التسجيل وحفظه في جدول العمل");
 };
 window.voiceLedgerCancel=function(){pending=null;render();};
+window.voiceLedgerQuick=function(kind){
+ const labels={work:"يوم عمل",holiday:"عطلة",payment:"دفعة مستلمة",advance:"سلفة للعامل",expense:"مصروف"};
+ if(!labels[kind])return;
+ let amount=0;
+ if(["payment","advance","expense"].includes(kind)){
+  const raw=prompt("أدخل المبلغ:");
+  if(raw===null)return;
+  amount=Number(String(raw).replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(",","."));
+  if(!Number.isFinite(amount)||amount<=0){toast("أدخل مبلغاً صحيحاً");return;}
+ }
+ const item={k:kind,d:today(),ds:labels[kind],due:kind==="work"?(Number(D.settings.dailyRate)||0):0,rec:kind==="payment"?amount:0,advance:kind==="advance"?amount:0,expense:kind==="expense"?amount:0,project:D.activeProject||null};
+ RB.add({type:"work",...item,voice:false,created:Date.now()});
+ RB.save();render();toast("تم تسجيل "+labels[kind]);
+};
 window.voiceLedgerListen=function(text){if(typeof speakText==="function")speakText(text,"ar-SA");else if("speechSynthesis" in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="ar-SA";speechSynthesis.speak(u);}else toast("الاستماع الصوتي غير مدعوم في هذا المتصفح");};
 window.voiceLedgerDelete=function(id){if(!confirm("حذف هذا السجل؟"))return;RB.remove(id);render();};
 window.voiceLedgerStart=function(){
@@ -67,13 +83,19 @@ VIEWS.voice=function(){
  const worked=monthRows.filter(w=>w.k==="work").length,holidays=monthRows.filter(w=>w.k==="holiday").length;
  const due=monthRows.filter(w=>w.k==="work").reduce((s,w)=>s+(+w.due||0),0);
  const received=monthRows.filter(w=>w.k==="payment").reduce((s,w)=>s+(+w.rec||0),0);
- const expenses=monthRows.filter(w=>w.k==="expense").reduce((s,w)=>s+(+w.rec||0),0);
+ const expenses=monthRows.filter(w=>w.k==="expense").reduce((s,w)=>s+(+w.expense||0),0);
+ const advances=monthRows.filter(w=>w.k==="advance").reduce((s,w)=>s+(+w.advance||0),0);
  const logs=RB.all("voice_log").slice().sort((a,b)=>(b.created||0)-(a.created||0));
- const preview=pending&&!pending.error?'<div class="card" style="border:2px solid var(--ac)"><b>🔎 راجع ما فهمه التطبيق قبل الحفظ</b><p>'+escv(pending.raw)+'</p>'+pending.items.map(x=>'<div class="item"><span>'+({work:"يوم عمل",holiday:"عطلة",payment:"دفعة مستلمة",expense:"مصروف"}[x.k])+'</span><b>'+money(x.due||x.rec||x.expense)+'</b></div>').join("")+'<p class="muted">الأجر اليومي مأخوذ من إعدادات الحساب. يمكنك إلغاء التسجيل إذا كان الفهم غير صحيح.</p><button class="p" onclick="voiceLedgerConfirm()">✓ اعتماد وحفظ</button> <button onclick="voiceLedgerCancel()">إلغاء</button><button onclick="voiceLedgerListen('+JSON.stringify(pending.raw).replace(/</g,"\\u003c")+')">🔊 استماع</button></div>':"";
- const kind={work:"عمل",holiday:"عطلة",payment:"دفعة",expense:"مصروف"};
- return '<div class="card"><b style="font-size:17px">🎙️ السجل الصوتي للعمال</b><p class="muted">قل جملة قصيرة مثل: «اليوم عمل واصل دفعة 10 دولار» أو «اليوم عطلة».</p><button class="p" style="font-size:16px;padding:12px 18px" onclick="voiceLedgerStart()">🎤 ابدأ التحدث</button><p class="muted">ستظهر معاينة لتأكيدها قبل إدخالها في الحسابات.</p></div>'+preview+
+ const preview=pending&&!pending.error?'<div class="card" style="border:2px solid var(--ac)"><b>🔎 راجع ما فهمه التطبيق قبل الحفظ</b><p>'+escv(pending.raw)+'</p>'+pending.items.map(x=>'<div class="item"><span>'+({work:"يوم عمل",holiday:"عطلة",payment:"دفعة مستلمة",advance:"سلفة للعامل",expense:"مصروف"}[x.k])+'</span><b>'+money(x.due||x.rec||x.expense||x.advance)+'</b></div>').join("")+'<p class="muted">الأجر اليومي مأخوذ من إعدادات الحساب. يمكنك إلغاء التسجيل إذا كان الفهم غير صحيح.</p><button class="p" onclick="voiceLedgerConfirm()">✓ اعتماد وحفظ</button> <button onclick="voiceLedgerCancel()">إلغاء</button><button onclick="voiceLedgerListen('+JSON.stringify(pending.raw).replace(/</g,"\\u003c")+')">🔊 استماع</button></div>':"";
+ const kind={work:"عمل",holiday:"عطلة",payment:"دفعة مستلمة",advance:"سلفة",expense:"مصروف"};
+ return '<div class="card"><b style="font-size:17px">🎙️ السجل الصوتي للعمال</b><p class="muted">قل جملة قصيرة مثل: «اليوم عمل واصل دفعة 10 دولار» أو «اليوم عطلة».</p><div class="grid3" style="margin:12px 0">
+<button class="card" style="min-height:88px;font-size:15px" onclick="voiceLedgerQuick('work')">🧱<br><b>يوم عمل</b></button>
+<button class="card" style="min-height:88px;font-size:15px" onclick="voiceLedgerQuick('holiday')">🌴<br><b>عطلة</b></button>
+<button class="card" style="min-height:88px;font-size:15px" onclick="voiceLedgerQuick('payment')">💵<br><b>دفعة مستلمة</b></button>
+<button class="card" style="min-height:88px;font-size:15px" onclick="voiceLedgerQuick('advance')">🤝<br><b>سلفة</b></button>
+<button class="card" style="min-height:88px;font-size:15px" onclick="voiceLedgerQuick('expense')">🧾<br><b>مصروف</b></button></div><button class="p" style="font-size:16px;padding:12px 18px" onclick="voiceLedgerStart()">🎤 ابدأ التحدث</button><p class="muted">ستظهر معاينة لتأكيدها قبل إدخالها في الحسابات.</p></div>'+preview+
  '<div class="card"><b>📅 الحساب الشهري والتقويم</b><label class="muted">اختر الشهر</label><input id="voiceMonth" type="month" value="'+month+'" onchange="render()" style="width:100%"><div class="grid3" style="margin-top:8px"><div class="card">أيام العمل<h3>'+worked+'</h3></div><div class="card">العطل<h3>'+holidays+'</h3></div><div class="card">الدفعات<h3>'+monthRows.filter(w=>w.k==="payment").length+'</h3></div></div><div class="grid2"><div class="card">المستحق<h3>'+money(due)+'</h3></div><div class="card">واصل<h3 class="ok">'+money(received)+'</h3></div><div class="card">المصروف<h3>'+money(expenses)+'</h3></div><div class="card">المتبقي<h3>'+money(due-received)+'</h3></div></div></div>'+
- '<div class="card"><b>🗓️ سجل الشهر — جدول العمليات</b>'+(monthRows.length?monthRows.map(w=>'<div class="item"><span><b>'+escv(kind[w.k]||w.k)+'</b> · '+escv(w.ds||"")+'<br><small class="muted">'+escv(w.d)+' · '+escv(w.voiceText||"إدخال يدوي")+'</small></span><b>'+money(w.due||w.rec||w.expense)+'</b><button onclick="voiceLedgerListen('+JSON.stringify(w.voiceText||w.ds||"").replace(/</g,"\\u003c")+')">🔊</button><button class="danger" onclick="voiceLedgerDelete(\''+w.id+'\')">حذف</button></div>').join(""):'<p class="muted">لا توجد عمليات في هذا الشهر.</p>')+'</div>'+
+ '<div class="card"><b>🗓️ سجل الشهر — جدول العمليات</b>'+(monthRows.length?monthRows.map(w=>'<div class="item"><span><b>'+escv(kind[w.k]||w.k)+'</b> · '+escv(w.ds||"")+'<br><small class="muted">'+escv(w.d)+' · '+escv(w.voiceText||"إدخال يدوي")+'</small></span><b>'+money(w.due||w.rec||w.expense||w.advance)+'</b><button onclick="voiceLedgerListen('+JSON.stringify(w.voiceText||w.ds||"").replace(/</g,"\\u003c")+')">🔊</button><button class="danger" onclick="voiceLedgerDelete(\''+w.id+'\')">حذف</button></div>').join(""):'<p class="muted">لا توجد عمليات في هذا الشهر.</p>')+'</div>'+
  '<div class="card"><b>🎧 سجل العبارات الصوتية</b>'+(logs.length?logs.map(l=>'<div class="item"><span>'+escv(l.d)+'<br>'+escv(l.body)+'</span><button onclick="voiceLedgerListen('+JSON.stringify(l.body||"").replace(/</g,"\\u003c")+')">🔊 استماع</button><button class="danger" onclick="voiceLedgerDelete(\''+l.id+'\')">حذف</button></div>').join(""):'<p class="muted">لا توجد تسجيلات محفوظة بعد.</p>')+'</div>';
 };
 const oldRender=window.render;
