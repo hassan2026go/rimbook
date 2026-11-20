@@ -23,12 +23,11 @@ function scheduleLocalReminder(){
   const due=new Date(date+"T"+event.t),diff=(due-now)/60000,lead=Math.max(0,Math.min(60,Number(event.reminderLead??15)));
   if(diff<0||diff>lead)return;
   reminded.add(key);
-  const delay=Math.max(0,(diff-lead)*60000);
-  setTimeout(()=>{
-   if(Notification.permission!=="granted")return;
-   const category=({wage:"موعد أجور",payment:"دفعة",advance:"سلفة",holiday:"عطلة",appointment:"موعد"})[event.reminderCategory]||"تذكير";
-   new Notification("⏰ Rimbook — "+category,{body:event.title+(diff>lead?"":" — حان الموعد"),icon:"./rimbook-icon-192x192.png",tag:key});
-  },delay);
+  if(Notification.permission!=="granted")return;
+  const category=({wage:"موعد أجور",payment:"دفعة",advance:"سلفة",holiday:"عطلة",appointment:"موعد"})[event.reminderCategory]||"تذكير";
+  const remaining=Math.max(0,Math.round(diff));
+  const message=remaining<=1?" — حان الموعد":" — بعد "+remaining+" دقيقة";
+  new Notification("⏰ Rimbook — "+category,{body:event.title+message,icon:"./rimbook-icon-192x192.png",tag:key});
  });
 }
 setInterval(scheduleLocalReminder,60000);
