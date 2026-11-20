@@ -149,4 +149,41 @@ assert.ok(pro.includes("voiceLedgerStart()"), "worker home must expose speech in
 assert.ok(pro.includes("مراجعة حسابي وسجل الحركات"), "worker home must provide a clear route to their ledger");
 assert.ok(voiceLedger.includes("راجع ما فهمه التطبيق قبل الحفظ"), "speech entries must be reviewed before saving");
 
+
+{
+  const confirmMatch = voiceLedger.match(/window\\.voiceLedgerConfirm=function\\(\\)\\{[\\s\\S]*?\\n\\};/);
+  assert.ok(confirmMatch, "voice confirmation handler must exist");
+  function voiceConfirmHarness(saveOk) {
+    const data = { items: [] };
+    let rendered = 0;
+    const messages = [];
+    const context = {
+      pending: { date: "2026-11-21", raw: "اليوم عمل واصل دفعة 10", items: [
+        { k: "work", d: "2026-11-21", due: 50 },
+        { k: "payment", d: "2026-11-21", rec: 10 }
+      ] },
+      window: {},
+      RB: { transact(mutator) { if (!saveOk) return false; mutator(data); return true; } },
+      render() { rendered++; },
+      toast(message) { messages.push(message); },
+      Date,
+      Math
+    };
+    vm.runInNewContext(confirmMatch[0] + ";", context);
+    return { context, data, messages, get rendered() { return rendered; } };
+  }
+  const failed = voiceConfirmHarness(false);
+  failed.context.window.voiceLedgerConfirm();
+  assert.equal(failed.data.items.length, 0, "failed voice save must not append partial entries");
+  assert.ok(failed.context.pending, "failed voice save must keep the review available for retry");
+  assert.equal(failed.rendered, 0, "failed voice save must not advance the screen");
+  const succeeded = voiceConfirmHarness(true);
+  succeeded.context.window.voiceLedgerConfirm();
+  assert.equal(succeeded.data.items.length, 3, "two parsed entries and one voice audit log must save together");
+  assert.equal(succeeded.data.items[0].voiceText, "اليوم عمل واصل دفعة 10");
+  assert.equal(succeeded.data.items[2].type, "voice_log");
+  assert.equal(succeeded.context.pending, null, "successful voice save must clear the pending review");
+  assert.equal(succeeded.rendered, 1);
+}
+
 console.log("UI behavior tests passed.");
