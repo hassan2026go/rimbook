@@ -83,8 +83,20 @@ const RB = (() => {
         Object.assign(d, replacement);
       });
     },
-    storageStatus() {
-      return { saved: true, lastSavedAt: null, persistentStorageAvailable: !!(navigator.storage && navigator.storage.persist) };
+    async storageStatus() {
+      try {
+        if (typeof navigator === "undefined" || !navigator.storage || !navigator.storage.estimate) return { supported: false };
+        const estimate = await navigator.storage.estimate();
+        const usage = Number(estimate.usage) || 0, quota = Number(estimate.quota) || 0;
+        const ratio = quota > 0 ? usage / quota : null;
+        return { supported: true, usage, quota, ratio, warning: ratio !== null && ratio >= 0.8, persistent: navigator.storage.persisted ? await navigator.storage.persisted() : null };
+      } catch (e) { return { supported: false, error: true }; }
+    },
+    async requestPersistentStorage() {
+      try {
+        if (typeof navigator === "undefined" || !navigator.storage || !navigator.storage.persist) return false;
+        return await navigator.storage.persist();
+      } catch (e) { return false; }
     }
   };
 })();
@@ -103,6 +115,17 @@ const TABS = { home:["🏠","الرئيسية"], projects:["📁","المشار�
 let view = "home", selDay = iso(new Date()), taskFilter = "all", mr = null, chunks = [], recT = 0;
 
 function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),2600);}
+async function checkRimbookStorage() {
+  const status = await RB.storageStatus();
+  if (!status.supported) return toast("هذا المتصفح لا يتيح فحص مساحة التخزين بالتفصيل.");
+  const used = (status.usage / 1048576).toFixed(1), total = (status.quota / 1048576).toFixed(1);
+  if (status.warning) toast("تحذير: مساحة التخزين المستخدمة مرتفعة ("+used+" من "+total+" ميغابايت). صدّر نسخة احتياطية وحرّر مساحة.");
+  else toast("مساحة التخزين المستخدمة تقريباً "+used+" من "+total+" ميغابايت.");
+}
+async function requestRimbookPersistence() {
+  const ok = await RB.requestPersistentStorage();
+  toast(ok ? "وافق المتصفح على طلب حماية بيانات المفكرة من الإزالة التلقائية." : "لم يمنح المتصفح التخزين الدائم. هذا لا يمنع الاستخدام، لكنه لا يضمن بقاء البيانات عند تنظيف مساحة المتصفح.");
+}
 function go(t){ view = t; render(); window.scrollTo(0,0); }
 function render(){
   const d = RB.data;
@@ -302,6 +325,10 @@ VIEWS.settings = () => {
   const holidayPay = Number.isFinite(Number(s.holidayPayPercent)) ? Number(s.holidayPayPercent) : 0;
   return `<div class=card><b>⚙️ الإعدادات العامة</b>
   <div class=row><button onclick="document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark'; render()">تبديل المظهر</button></div>
+  </div>
+  <div class=card><b>🛡️ حماية بيانات المفكرة</b>
+  <p class=muted>الحفظ محلي على هذا الجهاز. افحص المساحة دورياً، واحتفظ بنسخة احتياطية خارج الجهاز. طلب التخزين الدائم يعتمد على موافقة المتصفح ولا يغني عن النسخ الاحتياطي.</p>
+  <div class=row><button onclick="checkRimbookStorage()">فحص مساحة التخزين</button><button onclick="requestRimbookPersistence()">طلب حماية التخزين</button></div>
   </div>
   <div class=card><b>💼 سياسة الأجور والحسابات</b>
   <p class=muted>يختار صاحب العمل القواعد المناسبة. تُحفظ الإعدادات على هذا الجهاز وتُستخدم في تسجيلات العمل الجديدة.</p>
