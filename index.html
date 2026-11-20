@@ -54,6 +54,19 @@ button:disabled{opacity:.4}
 .ok{color:var(--ok)}
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--p);color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;z-index:50;max-width:90%}
 .avatar{width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--ac);background:var(--bd);display:inline-flex;align-items:center;justify-content:center;font-size:40px}
+#quickSearch{width:min(42vw,220px);min-width:105px;padding:8px 10px;font-size:12px}
+#searchResults{position:sticky;top:54px;z-index:19;max-width:520px;margin:0 auto;padding:0 12px;max-height:55vh;overflow:auto;background:var(--bg)}
+#searchResults[hidden]{display:none}
+.search-heading,.search-empty{background:var(--card);border:1px solid var(--bd);padding:10px 12px;color:var(--mu);font-size:12px}
+.search-hit{display:flex;width:100%;flex-direction:column;align-items:flex-start;gap:3px;border-radius:0;background:var(--card);padding:11px 12px;text-align:right}
+.search-hit+ .search-hit{border-top:0}
+.search-hit small{color:var(--mu);font-size:11px}
+.home-profile{display:flex;align-items:center;gap:10px;width:100%;padding:8px;background:var(--in);text-align:right;margin-bottom:12px}
+.home-profile img,.home-profile>span:first-child{width:54px;height:54px;border-radius:50%;object-fit:cover;border:2px solid var(--ac);display:flex;align-items:center;justify-content:center;font-size:27px;background:var(--bd)}
+.home-profile>span:nth-child(2){display:flex;flex:1;flex-direction:column;gap:2px}
+.home-profile small{font-size:11px;color:var(--mu)}
+.home-profile strong{font-size:24px;color:var(--ac)}
+
 audio{width:100%;margin-top:8px}
 .mic{position:fixed;bottom:80px;left:16px;z-index:30;width:56px;height:56px;border-radius:50%;background:var(--p);color:#fff;font-size:24px;border:0;box-shadow:0 4px 16px rgba(37,99,235,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .2s}
 .mic.rec{background:var(--bad);animation:pulse 1.2s infinite}
@@ -72,10 +85,12 @@ footer#appFooter{max-width:520px;margin:18px auto 100px;padding:18px 14px;text-a
 <header>
   <h1>rimbook</h1>
   <div class="hdr">
+    <input id="quickSearch" type="search" autocomplete="off" placeholder="🔎 بحث سريع..." aria-label="ابحث في المفكرة" oninput="searchRimbook(this.value)" onkeydown="searchRimbookKey(event)">
     <span id="net"></span>
     <button id="btnInstall" class="p" type="button" hidden>📲 تثبيت التطبيق</button>
   </div>
 </header>
+<div id="searchResults" hidden aria-live="polite"></div>
 <main id="view"></main>
 <button id="micBtn" class="mic" onclick="voiceCapture()" aria-label="التسجيل الصوتي">🎤</button>
 <nav id="tabs"></nav>
