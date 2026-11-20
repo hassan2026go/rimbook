@@ -7,6 +7,7 @@ const app = fs.readFileSync("app.js", "utf8");
 const pro = fs.readFileSync("pro.js", "utf8");
 const voiceLedger = fs.readFileSync("voice-ledger.js", "utf8");
 const invoices = fs.readFileSync("invoices.js", "utf8");
+const receipts = fs.readFileSync("receipts.js", "utf8");
 const reversalMatch = voiceLedger.match(/function applyWorkReversal\(data,id,reason,now,newId\)\{[\s\S]*?\n\}/);
 assert.ok(reversalMatch, "financial reversal helper must exist");
 const applyWorkReversal = vm.runInNewContext("(" + reversalMatch[0] + ")");
@@ -101,7 +102,7 @@ assert.ok(activation.includes("reverseWorkEntry"));
 assert.ok(voiceLedger.includes("تصحيح بقيد عكسي"));
 assert.ok(voiceLedger.includes("تم عكسه بقيد موثق"));
 assert.ok(voiceLedger.includes("countedRows.filter(w=>w.k===\"work\")"));
-assert.ok(invoices.includes("ملغى بقيد عكسي موثق"));
+assert.ok(receipts.includes("ملغى بقيد عكسي موثق"));
 
 {
   const data = { items: [{ type: "work", id: "pay-1", k: "payment", d: "2026-11-20", rec: 100, due: 0, advance: 0, expense: 0, ds: "دفعة" }] };
