@@ -98,4 +98,46 @@ function createHarness(initial = "{}") {
   assert.equal(reopened.RB.data.items[0].rec, 7.25);
 }
 
+
+{
+  const voiceLedger = fs.readFileSync("voice-ledger.js", "utf8");
+  const helperMatch = voiceLedger.match(/function applyWorkReversal\\(data,id,reason,now,newId\\)\\{[\\s\\S]*?\\n\\}/);
+  assert.ok(helperMatch, "financial reversal helper must exist for transaction integration");
+  const applyWorkReversal = vm.runInNewContext("(" + helperMatch[0] + ")");
+  const reverseStart = voiceLedger.indexOf("window.reverseWorkEntry=function(id){");
+  const reverseEnd = voiceLedger.indexOf("\\n};", reverseStart);
+  assert.ok(reverseStart >= 0 && reverseEnd > reverseStart, "reverse action handler must exist");
+  const reverseSource = voiceLedger.slice(reverseStart, reverseEnd + 3);
+  const h = createHarness();
+  const original = h.RB.add({ type: "work", id: "work-to-reverse", k: "payment", rec: 40, d: "2026-11-21" });
+  assert.ok(original);
+  let rendered = 0;
+  const context = {
+    RB: h.RB,
+    window: {},
+    prompt() { return "تصحيح مبلغ الدفعة"; },
+    confirm() { return true; },
+    applyWorkReversal,
+    JSON,
+    Date,
+    Math,
+    render() { rendered++; },
+    toast(message) { h.messages.push(String(message)); }
+  };
+  vm.runInNewContext(reverseSource + ";", context);
+  const savedSnapshot = h.stored;
+  h.failWrites(true);
+  context.window.reverseWorkEntry("work-to-reverse");
+  assert.equal(h.RB.data.items.length, 1, "failed reversal save must remove the staged reversal row");
+  assert.equal(h.RB.data.items[0].reversedBy, undefined, "failed reversal save must restore original metadata");
+  assert.equal(h.stored, savedSnapshot, "failed reversal save must preserve persisted financial data");
+  assert.equal(rendered, 0, "failed reversal must not refresh as if it succeeded");
+  h.failWrites(false);
+  context.window.reverseWorkEntry("work-to-reverse");
+  assert.equal(h.RB.data.items.length, 2, "successful retry must save the reversal exactly once");
+  assert.equal(h.RB.data.items[0].reversedBy, h.RB.data.items[1].id);
+  assert.equal(h.RB.data.items[1].rec, -40);
+  assert.equal(rendered, 1);
+}
+
 console.log("Storage integrity tests passed.");
