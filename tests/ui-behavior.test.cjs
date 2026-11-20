@@ -3,6 +3,7 @@ const vm = require("node:vm");
 const assert = require("node:assert/strict");
 
 const activation = fs.readFileSync("activation.js", "utf8");
+const app = fs.readFileSync("app.js", "utf8");
 const pro = fs.readFileSync("pro.js", "utf8");
 const voiceLedger = fs.readFileSync("voice-ledger.js", "utf8");
 const invoices = fs.readFileSync("invoices.js", "utf8");
@@ -15,6 +16,10 @@ function extractFunction(source, name) {
 
 const projectOptions = extractFunction(activation, "projectOptions");
 const goalProgress = extractFunction(activation, "goalProgress");
+const normMatch = app.match(/function normalizeSearchText\(value\) \{[\s\S]*?\n\}/);
+assert.ok(normMatch, "Arabic search normalization must exist");
+const normalizeSearchText = vm.runInNewContext("(" + normMatch[0] + ")");
+assert.equal(normalizeSearchText("  أَحْمَد   مُحَمَّد  "), "احمد محمد");
 
 {
   const result = projectOptions([], null);
@@ -76,6 +81,11 @@ assert.match(activation, /project:selectedProject\(\)/);
 assert.match(activation, /data\.items\.forEach\(row=>\{if\(row\.project===id\)row\.project=null;\}\)/);
 assert.match(pro, /const projectSelect=\$\("pproject"\)/);
 assert.ok(pro.includes('aria-label="فتح الملف الشخصي"'));
+assert.ok(!pro.includes('id="proSearch"'), "only one unified search box should be installed");
+assert.ok(app.includes("RB.data.goals||[]"));
+assert.ok(app.includes("RB.data.habits||[]"));
+assert.ok(app.includes('kind==="goal"'));
+assert.ok(app.includes('event:"موعد"'));
 assert.match(pro, /pill\("مباشر","ok"\)/);
 
 assert.ok(activation.includes('row.type==="work"'));
