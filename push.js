@@ -1,4 +1,5 @@
-/* rimbook push.js - إشعارات مجانية بدون سيرفر (يستخدم Notification API المحلي) */
+/* rimbook push.js - إشعارات محلية */
+const reminded = new Set();
 
 async function enablePush(){
   if(!("Notification" in window)) return toast("الإشعارات غير مدعومة");
