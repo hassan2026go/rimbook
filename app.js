@@ -1,6 +1,4 @@
-/* rimbook v6 - النسخة النهائية الموحدة (ملف واحد فقط) */
-
-// ==================== 1) طبقة البيانات ====================
+/* rimbook v6 - الكود الأساسي الشامل */
 const RB = (() => {
   const KEY = "rimbook.v6";
   const def = () => ({
@@ -27,10 +25,10 @@ const iso = d => new Date(d - d.getTimezoneOffset()*6e4).toISOString().slice(0,1
 const fmt = s => String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
 
 const ROLES = {
-  employee: { label: "موظف", tip: "رتّب مهامك", tabs: ["home","projects","agenda","tasks","ledger","profile","settings"] },
-  worker: { label: "عامل", tip: "سجّل عملك", tabs: ["home","projects","ledger","tasks","profile","settings"] }
+  employee: { label: "موظف", tip: "رتّب مهامك", tabs: ["home","projects","agenda","tasks","ledger","profile","settings","stats","sync","integrations"] },
+  worker: { label: "عامل", tip: "سجّل عملك", tabs: ["home","projects","ledger","tasks","profile","settings","stats","sync","integrations"] }
 };
-const TABS = { home:["🏠","الرئيسية"], projects:["📁","المشاريع"], agenda:["📅","المفكرة"], tasks:["✅","المهام"], ledger:["💼","العمل"], profile:["👤","الملف"], settings:["⚙️","الإعدادات"] };
+const TABS = { home:["🏠","الرئيسية"], projects:["📁","المشاريع"], agenda:["📅","المفكرة"], tasks:["✅","المهام"], ledger:["💼","العمل"], profile:["👤","الملف"], settings:["⚙️","الإعدادات"], stats:["📊","الإحصاء"], sync:["🔄","المزامنة"], integrations:["🧩","الإضافات"] };
 
 let view = "home", selDay = iso(new Date()), taskFilter = "all", mr = null, chunks = [], recT = 0;
 
@@ -44,76 +42,76 @@ function render(){
   $("#view").innerHTML = VIEWS[view] ? VIEWS[view]() : "";
 }
 
-// ==================== 2) الحوسبة الصوتية ====================
+/* ===== المشاريع ===== */
+function addProject(){
+  const n = $("#pr-n").value.trim(); if(!n) return;
+  RB.data.projects.push({ id: Date.now().toString(36), name: n, color: "#22d3ee", budget: 0 });
+  RB.save(); render(); toast("✅ أضيف المشروع");
+}
+function setActiveProject(pid){ RB.data.activeProject = pid || null; RB.save(); render(); }
+function delProject(pid){
+  if(!confirm("حذف المشروع؟")) return;
+  RB.data.projects = RB.data.projects.filter(p => p.id !== pid);
+  RB.data.items = RB.data.items.filter(x => x.project !== pid);
+  RB.save(); render();
+}
+
+/* ===== الحوسبة الصوتية ===== */
 function voiceCapture(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return toast("استخدم Chrome أو Safari.");
   const r = new SR();
-  r.lang = "ar-SA";
-  toast("🎤 تحدث الآن...");
+  r.lang = "ar-SA"; toast("🎤 تحدث الآن...");
   r.onresult = e => {
     const text = e.results[0][0].transcript;
-    const p = parseArabicVoice(text);
-    voiceApply(p);
+    RB.add({ type:"note", d:iso(new Date()), title: "", body: text });
+    render(); toast("✅ تم الحفظ: " + text);
   };
   r.start();
 }
-function parseArabicVoice(text){
-  const t = text.trim();
-  const p = { type:null, amount:null, date:iso(new Date()), title:t };
-  if (/واصل|استلمت|دفعة|دفع/i.test(t)) p.type = "payment";
-  else if (/عطلة|راحة/i.test(t)) p.type = "holiday";
-  else if (/عمل|شغل/i.test(t)) p.type = "work";
-  const money = t.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).match(/(\d+)/);
-  if (money) p.amount = +money[1];
-  if (/غدا|غداً|بكرا/i.test(t)) p.date = iso(new Date(Date.now()+864e5));
-  return p;
-}
-function voiceApply(p){
-  if(p.type === "payment") RB.add({type:"work", d:p.date, k:"payment", rec:p.amount||0, ds:"دفعة"});
-  else if(p.type === "work") RB.add({type:"work", d:p.date, k:"work", due:RB.data.settings.dailyRate, ds:"عمل"});
-  else RB.add({type:"note", d:p.date, body:p.title, title:""});
-  render(); toast("✅ تم الحفظ");
-}
 
-// ==================== 3) الشاشات ====================
+/* ===== الشاشات ===== */
 const VIEWS = {};
 
 VIEWS.home = () => {
   const tasks = RB.all("task"), open = tasks.filter(x=>!x.done);
-  const L = RB.all("work").reduce((acc, e) => { acc.rec += e.rec||0; acc.due += e.due||0; return acc; }, {rec:0, due:0});
   return `<div class=card><h2>أهلاً بك 👋</h2><p class=muted>${new Date().toLocaleDateString("ar")}</p></div>
   <div class="grid3">
-    <div class=card><small class=muted>مهام</small><h3>${open.length}</h3></div>
-    <div class=card><small class=muted>واصل</small><h3 class=ok>${L.rec}</h3></div>
-    <div class=card><small class=muted>متبقي</small><h3 class=hi>${L.due-L.rec}</h3></div>
+    <div class=card><small class=muted>مهام مفتوحة</small><h3>${open.length}</h3></div>
+    <div class=card><small class=muted>المشاريع</small><h3>${RB.data.projects.length}</h3></div>
+    <div class=card><small class=muted>الملاحظات</small><h3>${RB.all("note").length}</h3></div>
   </div>`;
 };
 
 VIEWS.projects = () => {
-  return `<div class=card><b>📁 المشاريع</b><p class=muted>قريباً...</p></div>`;
+  return `<div class=card><b>➕ مشروع جديد</b><div class=row style="margin-top:6px"><input id=pr-n placeholder="اسم المشروع" style="flex:1"><button class=p onclick="addProject()">إضافة</button></div></div>
+  <div class=card><b>📁 المشاريع (${RB.data.projects.length})</b>
+  ${RB.data.projects.map(p=>`<div class="item" style="border:1px solid var(--bd);border-radius:8px;padding:8px;margin-top:8px">
+    <b style="flex:1">${esc(p.name)}</b>
+    <button class=p onclick="setActiveProject('${p.id}')">تفعيل</button>
+    <button class=danger onclick="delProject('${p.id}')">🗑</button>
+  </div>`).join("") || '<p class=muted>لا مشاريع بعد</p>'}
+  </div>`;
 };
 
 VIEWS.tasks = () => {
   const all = RB.all("task");
-  return `<div class=card><b>المهام</b>
-  <div class=row><input id=tk-t placeholder="مهمة جديدة" style="flex:1"><button class=p onclick="addTask()">+</button></div>
-  ${all.map(x=>`<div class="item ${x.done?"done":""}"><input type=checkbox ${x.done?"checked":""} onchange="RB.patch('${x.id}',{done:${!x.done}});render()"><span>${esc(x.title)}</span></div>`).join("")}
+  return `<div class=card><b>✅ المهام</b>
+  <div class=row style="margin-top:8px"><input id=tk-t placeholder="مهمة جديدة" style="flex:1"><button class=p onclick="addTask()">+</button></div>
+  ${all.map(x=>`<div class="item ${x.done?"done":""}"><input type=checkbox ${x.done?"checked":""} onchange="RB.patch('${x.id}',{done:${!x.done}});render()"><span>${esc(x.title)}</span><button onclick="delItem('${x.id}')">🗑</button></div>`).join("") || '<p class=muted>لا مهام</p>'}
   </div>`;
 };
 function addTask(){ const v = $("#tk-t").value; if(v){ RB.add({type:"task", title:v, done:false}); render(); } }
+function delItem(id){ RB.remove(id); render(); }
 
-VIEWS.ledger = () => {
-  const L = RB.all("work");
-  return `<div class=card><b>💼 العمل</b>
-  <div class=row><button class=p onclick="addWk()">+ يوم عمل</button></div>
-  ${L.map(x=>`<div class=item"><span>${x.d}</span><span class="tag">${x.k}</span><span>${x.due||0}</span></div>`).join("")}
-  </div>`;
+VIEWS.profile = () => {
+  const p = RB.data.profile;
+  return `<div class=card style="text-align:center">
+    <div class=avatar>👤</div><h2>${esc(p.name || "اسمك")}</h2>
+    <input style="width:100%;margin-top:8px" value="${esc(p.name)}" placeholder="اكتب اسمك هنا" onchange="RB.data.profile.name=this.value;RB.save();render()">
+  </div>
+  <div class=card><b>حول</b><textarea rows=4 style="width:100%">${esc(p.about)}</textarea></div>`;
 };
-function addWk(){ RB.add({type:"work", d:iso(new Date()), k:"work", due:50}); render(); }
-
-VIEWS.agenda = () => `<div class=card><b>📅 المفكرة</b><p class=muted>قريباً...</p></div>`;
-VIEWS.profile = () => `<div class=card><b>👤 الملف</b><p>الاسم: ${esc(RB.data.profile.name)}</p></div>`;
 
 VIEWS.settings = () => {
   return `<div class=card><b>⚙️ الإعدادات</b>
@@ -121,8 +119,13 @@ VIEWS.settings = () => {
   </div>`;
 };
 
-// ==================== 4) التشغيل التلقائي ====================
-// هذا السطر يضمن تشغيل التطبيق بمجرد تحميل الصفحة
+VIEWS.stats = () => `<div class=card><b>📊 الإحصاء</b><p class=muted>رسوم بيانية قريباً...</p></div>`;
+VIEWS.sync = () => `<div class=card><b>🔄 المزامنة</b><p class=muted>مزامنة قريباً...</p></div>`;
+VIEWS.integrations = () => `<div class=card><b>🧩 الإضافات</b><p class=muted>إضافات قريباً...</p></div>`;
+VIEWS.agenda = () => `<div class=card><b>📅 المفكرة</b><p class=muted>مواعيد قريباً...</p></div>`;
+VIEWS.ledger = () => `<div class=card><b>💼 العمل</b><p class=muted>حسابات قريباً...</p></div>`;
+
+// ==================== التشغيل التلقائي ====================
 window.addEventListener('DOMContentLoaded', () => {
   render();
 });
