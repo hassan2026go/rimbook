@@ -11,7 +11,7 @@ function generateSuggestions(){
   const upcoming = open.filter(t => t.due && t.due === today);
   const events = dayEvents(today);
   const habits = RB.data.habits.filter(h => !pid || h.project === pid);
-  const habitsDone = habits.filter(h => h.history.includes(today)).length;
+  const habitsDone = habits.filter(h => (h.history || []).includes(today)).length;
 
   /* مهام متأخرة */
   if(late.length > 0){
