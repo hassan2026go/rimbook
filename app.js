@@ -13,15 +13,79 @@ const RB = (() => {
     data = Object.assign({}, defaults, saved);
     data.settings = Object.assign({}, defaults.settings, saved.settings || {});
     data.profile = Object.assign({}, defaults.profile, saved.profile || {});
+    if (!Array.isArray(data.items)) data.items = [];
   } catch (e) { data = def(); }
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); return true; } catch (e) { return false; } };
+  let lastGoodSerialized = JSON.stringify(data);
+  let storageErrorShown = false;
+  const restoreLastGood = () => {
+    try {
+      const snapshot = JSON.parse(lastGoodSerialized);
+      Object.keys(data).forEach(k => delete data[k]);
+      Object.assign(data, snapshot);
+    } catch (e) { /* keep the in-memory object intact if recovery itself fails */ }
+  };
+  const reportStorageFailure = () => {
+    if (storageErrorShown) return;
+    storageErrorShown = true;
+    if (typeof toast === "function") toast("تنبيه مهم: لم تُحفظ العملية. بقيت البيانات السابقة كما هي؛ حرّر مساحة ثم أعد المحاولة.");
+    if (typeof window !== "undefined" && typeof CustomEvent !== "undefined") {
+      window.dispatchEvent(new CustomEvent("rimbook-storage-error"));
+    }
+  };
+  const save = () => {
+    let serialized;
+    try {
+      serialized = JSON.stringify(data);
+      localStorage.setItem(KEY, serialized);
+      lastGoodSerialized = serialized;
+      storageErrorShown = false;
+      return true;
+    } catch (e) {
+      restoreLastGood();
+      reportStorageFailure();
+      return false;
+    }
+  };
+  const transact = mutator => {
+    try {
+      mutator(data);
+      return save();
+    } catch (e) {
+      restoreLastGood();
+      reportStorageFailure();
+      return false;
+    }
+  };
   return {
     get data() { return data; },
     all: t => data.items.filter(i => i.type === t),
-    add(o) { o.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6); o.created = Date.now(); data.items.push(o); save(); return o; },
-    patch(id, p) { const i = data.items.find(x => x.id === id); if (i) Object.assign(i, p); save(); },
-    remove(id) { data.items = data.items.filter(x => x.id !== id); save(); },
-    save, replace(obj) { Object.keys(data).forEach(k => delete data[k]); Object.assign(data, def(), obj); save(); }
+    transact,
+    add(o) {
+      const row = Object.assign({}, o, { id: o.id || (Date.now().toString(36) + Math.random().toString(36).slice(2, 8)), created: o.created || Date.now() });
+      const ok = transact(d => { d.items.push(row); });
+      return ok ? row : null;
+    },
+    patch(id, p) {
+      let found = false;
+      const ok = transact(d => { const i = d.items.find(x => x.id === id); if (i) { Object.assign(i, p); found = true; } });
+      return ok && found;
+    },
+    remove(id) {
+      const before = data.items.length;
+      const ok = transact(d => { d.items = d.items.filter(x => x.id !== id); });
+      return ok && data.items.length < before;
+    },
+    save,
+    replace(obj) {
+      return transact(d => {
+        const replacement = Object.assign({}, def(), obj);
+        Object.keys(d).forEach(k => delete d[k]);
+        Object.assign(d, replacement);
+      });
+    },
+    storageStatus() {
+      return { saved: true, lastSavedAt: null, persistentStorageAvailable: !!(navigator.storage && navigator.storage.persist) };
+    }
   };
 })();
 
@@ -51,15 +115,18 @@ function render(){
 /* ===== المشاريع ===== */
 function addProject(){
   const n = $("#pr-n").value.trim(); if(!n) return;
-  RB.data.projects.push({ id: Date.now().toString(36), name: n, color: "#22d3ee", budget: 0 });
-  RB.save(); render(); toast("✅ أضيف المشروع");
+  const ok = RB.transact(d => { d.projects.push({ id: Date.now().toString(36), name: n, color: "#22d3ee", budget: 0 }); });
+  if (!ok) return;
+  render(); toast("✅ أضيف المشروع");
 }
-function setActiveProject(pid){ RB.data.activeProject = pid || null; RB.save(); render(); }
+function setActiveProject(pid){ if (!RB.transact(d => { d.activeProject = pid || null; })) return; render(); }
 function delProject(pid){
   if(!confirm("حذف المشروع؟")) return;
-  RB.data.projects = RB.data.projects.filter(p => p.id !== pid);
-  RB.data.items = RB.data.items.filter(x => x.project !== pid);
-  RB.save(); render();
+  if (!RB.transact(d => {
+    d.projects = d.projects.filter(p => p.id !== pid);
+    d.items = d.items.filter(x => x.project !== pid);
+  })) return;
+  render();
 }
 
 /* ===== الحوسبة الصوتية ===== */
@@ -70,7 +137,7 @@ function voiceCapture(){
   r.lang = "ar-SA"; toast("🎤 تحدث الآن...");
   r.onresult = e => {
     const text = e.results[0][0].transcript;
-    RB.add({ type:"note", d:iso(new Date()), title: "", body: text });
+    if (!RB.add({ type:"note", d:iso(new Date()), title: "", body: text })) return;
     render(); toast("✅ تم الحفظ: " + text);
   };
   r.start();
@@ -107,7 +174,7 @@ VIEWS.tasks = () => {
   ${all.map(x=>`<div class="item ${x.done?"done":""}"><input type=checkbox ${x.done?"checked":""} onchange="RB.patch('${x.id}',{done:${!x.done}});render()"><span>${esc(x.title)}</span><button onclick="delItem('${x.id}')">🗑</button></div>`).join("") || '<p class=muted>لا مهام</p>'}
   </div>`;
 };
-function addTask(){ const v = $("#tk-t").value; if(v){ RB.add({type:"task", title:v, done:false}); render(); } }
+function addTask(){ const v = $("#tk-t").value; if(v && RB.add({type:"task", title:v, done:false})) render(); }
 function delItem(id){ RB.remove(id); render(); }
 
 function normalizeProfileDigits(value) {
@@ -227,7 +294,7 @@ function savePayrollSetting(key, value) {
   } else if (key === "overtimeEnabled") {
     RB.data.settings[key] = !!value;
   }
-  RB.save();
+  if (!RB.save()) return;
   toast("تم حفظ إعدادات الأجور");
 }
 VIEWS.settings = () => {
