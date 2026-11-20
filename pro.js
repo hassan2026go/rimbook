@@ -56,7 +56,7 @@ function taskRow(t){
 }
 VIEWS.home=function(){
  const profile=D.profile||{};
- const hasPhoto=/^data:image\\/(jpeg|png|webp);base64,/i.test(profile.photo||"");
+ const hasPhoto=/^data:image\/(jpeg|png|webp);base64,/i.test(profile.photo||"");
  const avatar=hasPhoto
   ? '<img src="'+safe(profile.photo)+'" alt="الصورة الشخصية">'
   : '<span aria-hidden="true">👤</span>';
