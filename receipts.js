@@ -38,15 +38,19 @@
   if(existingId&&!existing)return toast("لم نعثر على الحركة أو سبق إصدار إيصال لها");
   if(!Number.isFinite(amount)||amount<=0)return toast("أدخل مبلغاً صحيحاً");
   if(!existing&&!labels[kind])return toast("اختر نوع الإيصال");
-  D.receiptSeq=(Number(D.receiptSeq)||0)+1;
-  const receiptNo="RB-"+date.replace(/-/g,"")+"-"+String(D.receiptSeq).padStart(4,"0");
-  if(existing){
-   existing.person=person;existing.phone=phone;existing.receiptNo=receiptNo;existing.receiptNote=note||existing.ds||"";
-  }else{
-   const row={type:"work",k:kind,d:date,ds:note||labels[kind],due:0,rec:kind==="payment"?amount:0,advance:kind==="advance"?amount:0,expense:kind==="expense"?amount:0,project:D.activeProject||null,person,phone,receiptNo,receiptNote:note,created:Date.now()};
-   RB.add(row);
-  }
-  RB.save();render();toast(existing?"تم إرفاق الإيصال بالحركة السابقة دون تكرار المبلغ":"تم تسجيل الحركة وإنشاء الإيصال");
+  const ok=RB.transact(d=>{
+   d.receiptSeq=(Number(d.receiptSeq)||0)+1;
+   const receiptNo="RB-"+date.replace(/-/g,"")+"-"+String(d.receiptSeq).padStart(4,"0");
+   if(existingId){
+    const row=d.items.find(w=>w.id===existingId&&w.type==="work"&&["payment","advance","expense"].includes(w.k)&&!w.receiptNo);
+    if(!row)throw new Error("receipt target changed");
+    row.person=person;row.phone=phone;row.receiptNo=receiptNo;row.receiptNote=note||row.ds||"";
+   }else{
+    d.items.push({type:"work",k:kind,d:date,ds:note||labels[kind],due:0,rec:kind==="payment"?amount:0,advance:kind==="advance"?amount:0,expense:kind==="expense"?amount:0,project:d.activeProject||null,person,phone,receiptNo,receiptNote:note,created:Date.now(),id:Date.now().toString(36)+Math.random().toString(36).slice(2,8)});
+   }
+  });
+  if(!ok)return;
+  render();toast(existing?"تم إرفاق الإيصال بالحركة السابقة دون تكرار المبلغ":"تم تسجيل الحركة وإنشاء الإيصال");
  };
  window.rimReceiptScreen=function(){
   const rows=RB.all("work").filter(x=>x.receiptNo).slice().sort((a,b)=>(b.created||0)-(a.created||0));
