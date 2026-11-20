@@ -10,7 +10,7 @@ const RB = (() => {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
     const defaults = def();
-    data = Object.assign(defaults, saved);
+    data = Object.assign({}, defaults, saved);
     data.settings = Object.assign({}, defaults.settings, saved.settings || {});
     data.profile = Object.assign({}, defaults.profile, saved.profile || {});
   } catch (e) { data = def(); }
