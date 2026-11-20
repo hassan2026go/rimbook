@@ -65,6 +65,7 @@ canvas{max-width:100%}
 details summary{cursor:pointer;padding:4px 0}
 pre{overflow-x:auto}
 @media print{header,nav,.mic{display:none}}
+footer#appFooter{max-width:520px;margin:18px auto 100px;padding:18px 14px;text-align:center;border-top:1px solid var(--bd);color:var(--mu);font-size:12px;line-height:1.9}footer#appFooter a{color:var(--ac);text-decoration:none}footer#appFooter button{margin-top:8px}
 </style>
 </head>
 <body data-theme="dark">
@@ -78,6 +79,7 @@ pre{overflow-x:auto}
 <main id="view"></main>
 <button id="micBtn" class="mic" onclick="voiceCapture()" aria-label="التسجيل الصوتي">🎤</button>
 <nav id="tabs"></nav>
+<footer id="appFooter"><strong>تطوير Yasser-ALhussen</strong><br>📍 درعا - سوريا 🇸🇾<br>📧 <a href="mailto:kalimat2026go@gmail.com">kalimat2026go@gmail.com</a><br><button type="button" onclick="go('about')">حول التطبيق</button></footer>
 
 <script src="./app.js"></script>
 <script src="./sync.js"></script>
