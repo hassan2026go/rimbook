@@ -22,3 +22,5 @@ jobs:
         run: node -e "JSON.parse(require('fs').readFileSync('manifest.webmanifest','utf8'))"
       - name: Test storage failure recovery
         run: node tests/storage-integrity.test.cjs
+      - name: Test project, goals and profile UI behavior
+        run: node tests/ui-behavior.test.cjs
