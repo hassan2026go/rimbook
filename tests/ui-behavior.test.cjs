@@ -7,7 +7,7 @@ const app = fs.readFileSync("app.js", "utf8");
 const pro = fs.readFileSync("pro.js", "utf8");
 const voiceLedger = fs.readFileSync("voice-ledger.js", "utf8");
 const invoices = fs.readFileSync("invoices.js", "utf8");
-const reversalMatch = voiceLedger.match(/function applyWorkReversal\\(data,id,reason,now,newId\\)\\{[\\s\\S]*?\\n\\}/);
+const reversalMatch = voiceLedger.match(/function applyWorkReversal\(data,id,reason,now,newId\)\{[\s\S]*?\n\}/);
 assert.ok(reversalMatch, "financial reversal helper must exist");
 const applyWorkReversal = vm.runInNewContext("(" + reversalMatch[0] + ")");
 
