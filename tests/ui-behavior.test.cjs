@@ -7,6 +7,9 @@ const app = fs.readFileSync("app.js", "utf8");
 const pro = fs.readFileSync("pro.js", "utf8");
 const voiceLedger = fs.readFileSync("voice-ledger.js", "utf8");
 const invoices = fs.readFileSync("invoices.js", "utf8");
+const reversalMatch = voiceLedger.match(/function applyWorkReversal\\(data,id,reason,now,newId\\)\\{[\\s\\S]*?\\n\\}/);
+assert.ok(reversalMatch, "financial reversal helper must exist");
+const applyWorkReversal = vm.runInNewContext("(" + reversalMatch[0] + ")");
 
 function extractFunction(source, name) {
   const match = source.match(new RegExp("function " + name + "\\([^)]*\\) \\{[\\s\\S]*?\\n  \\}"));
@@ -94,5 +97,47 @@ assert.ok(voiceLedger.includes('row.type==="work"'));
 assert.ok(voiceLedger.includes("لن يؤثر ذلك في أي حركة مالية"));
 assert.ok(invoices.includes("الحذف النهائي للفواتير متوقف"));
 assert.ok(activation.includes("ستبقى جميع السجلات والفواتير محفوظة"));
+assert.ok(activation.includes("reverseWorkEntry"));
+assert.ok(voiceLedger.includes("تصحيح بقيد عكسي"));
+assert.ok(voiceLedger.includes("تم عكسه بقيد موثق"));
+assert.ok(voiceLedger.includes("countedRows.filter(w=>w.k===\"work\")"));
+assert.ok(invoices.includes("ملغى بقيد عكسي موثق"));
+
+{
+  const data = { items: [{ type: "work", id: "pay-1", k: "payment", d: "2026-11-20", rec: 100, due: 0, advance: 0, expense: 0, ds: "دفعة" }] };
+  const result = applyWorkReversal(data, "pay-1", "المبلغ أُدخل خطأ", 1234, "rev-1");
+  assert.equal(result.ok, true);
+  assert.equal(data.items.length, 2);
+  assert.equal(data.items[0].rec, 100, "original amount must remain unchanged");
+  assert.equal(data.items[0].reversedBy, "rev-1");
+  assert.equal(data.items[1].rec, -100, "reversal must offset the original amount");
+  assert.equal(data.items[1].reversalOf, "pay-1");
+  assert.equal(data.items[1].correctionReason, "المبلغ أُدخل خطأ");
+  assert.equal(data.items.reduce((sum, row) => sum + row.rec, 0), 0, "net received amount must return to zero");
+  const duplicate = applyWorkReversal(data, "pay-1", "محاولة ثانية", 2345, "rev-2");
+  assert.equal(duplicate.ok, false, "an original entry can only be reversed once");
+  assert.equal(data.items.length, 2);
+  const reverseOfReverse = applyWorkReversal(data, "rev-1", "محاولة عكس العكس", 3456, "rev-3");
+  assert.equal(reverseOfReverse.ok, false, "a reversal entry cannot itself be reversed");
+  assert.equal(data.items.length, 2);
+}
+
+{
+  const data = { items: [{ type: "work", id: "work-1", k: "work", due: 75, overtimePay: 15, otHours: 1.5, normalHours: 8 }] };
+  const result = applyWorkReversal(data, "work-1", "تصحيح ساعات العمل", 1234, "rev-work");
+  assert.equal(result.ok, true);
+  assert.equal(data.items[1].due, -75);
+  assert.equal(data.items[1].overtimePay, -15);
+  assert.equal(data.items[1].otHours, -1.5);
+  assert.equal(data.items[1].normalHours, -8);
+  assert.equal(data.items.reduce((sum, row) => sum + row.due, 0), 0, "net due must be offset");
+}
+
+{
+  const data = { items: [{ type: "work", id: "pay-2", k: "payment", rec: 10 }] };
+  const result = applyWorkReversal(data, "pay-2", "لا", 1234, "rev-short");
+  assert.equal(result.ok, false, "a meaningful reason is required");
+  assert.equal(data.items.length, 1, "invalid correction must not change data");
+}
 
 console.log("UI behavior tests passed.");
