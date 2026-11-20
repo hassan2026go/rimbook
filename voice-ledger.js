@@ -23,7 +23,7 @@ function parseSpoken(raw){
  const projectMatch=(D.projects||[]).find(p=>s.includes(normalize(p.name)));
  const project=projectMatch?.id||D.activeProject||null;
  const out=[];
- if(hasHoliday) out.push({k:"holiday",d:date,ds:"عطلة",due:0,rec:0,ot:0,project});
+ if(hasHoliday) out.push({k:"holiday",d:date,ds:"عطلة",due:(Number(D.settings.dailyRate)||0)*(Math.min(100,Math.max(0,Number(D.settings.holidayPayPercent)||0))/100),rec:0,ot:0,project});
  else if(hasWork) out.push({k:"work",d:date,ds:"يوم عمل",due:Number(D.settings.dailyRate)||0,rec:0,ot:0,project});
  if(hasPayment) out.push({k:"payment",d:date,ds:"دفعة مستلمة",due:0,rec:amount,ot:0,project});
  if(hasAdvance) out.push({k:"advance",d:date,ds:"سلفة للعامل",due:0,rec:0,advance:amount,ot:0,project});
@@ -44,7 +44,7 @@ window.voiceLedgerCancel=function(){pending=null;render();};
 function voiceLedgerSaveQuick(kind,amount){
  const labels={work:"يوم عمل",holiday:"عطلة",payment:"دفعة مستلمة",advance:"سلفة للعامل",expense:"مصروف"};
  if(!labels[kind])return;
- const item={k:kind,d:today(),ds:labels[kind],due:kind==="work"?(Number(D.settings.dailyRate)||0):0,rec:kind==="payment"?amount:0,advance:kind==="advance"?amount:0,expense:kind==="expense"?amount:0,project:D.activeProject||null};
+ const item={k:kind,d:today(),ds:labels[kind],due:kind==="work"?(Number(D.settings.dailyRate)||0):kind==="holiday"?(Number(D.settings.dailyRate)||0)*(Math.min(100,Math.max(0,Number(D.settings.holidayPayPercent)||0))/100):0,rec:kind==="payment"?amount:0,advance:kind==="advance"?amount:0,expense:kind==="expense"?amount:0,project:D.activeProject||null};
  RB.add({type:"work",...item,voice:false,created:Date.now()});
  RB.save();render();toast("تم تسجيل "+labels[kind]);
 }
