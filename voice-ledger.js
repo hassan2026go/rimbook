@@ -93,7 +93,13 @@ window.voiceLedgerQuick=function(kind){
  document.body.insertAdjacentHTML("beforeend",'<div id="voiceAmountDialog" role="dialog" aria-modal="true" aria-label="إدخال المبلغ" style="position:fixed;inset:0;z-index:100;background:#000a;display:flex;align-items:center;justify-content:center;padding:16px"><div class="card" style="width:min(100%,360px);margin:0;background:var(--card);box-shadow:0 12px 40px #0008"><b style="font-size:18px">أدخل مبلغ: '+labels[kind]+'</b><input id="voiceAmountInput" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" style="width:100%;font-size:28px;text-align:center;margin:14px 0;padding:14px" readonly><div class="grid3">'+keys.map(k=>'<button type="button" style="min-height:54px;font-size:20px" onclick="voiceLedgerAmountDigit(\''+k+'\')">'+(k==="clear"?"مسح":k==="dot"?".":k)+'</button>').join("")+'<button type="button" style="min-height:54px" onclick="voiceLedgerAmountDigit(\'back\')">⌫</button></div><div class=row style="margin-top:12px"><button class=p style="flex:1;min-height:48px;font-size:16px" onclick="voiceLedgerAmountSubmit(\''+kind+'\')">تأكيد وحفظ</button><button type="button" style="min-height:48px" onclick="document.getElementById(\'voiceAmountDialog\').remove()">إلغاء</button></div></div></div>');
 };
 window.voiceLedgerListen=function(text){if(typeof speakText==="function")speakText(text,"ar-SA");else if("speechSynthesis" in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="ar-SA";speechSynthesis.speak(u);}else toast("الاستماع الصوتي غير مدعوم في هذا المتصفح");};
-window.voiceLedgerDelete=function(id){if(!confirm("حذف هذا السجل؟"))return;if(!RB.remove(id))return;render();};
+window.voiceLedgerDelete=function(id){
+  const row=RB.data.items.find(item=>String(item.id)===String(id));if(!row)return toast("لم نعثر على السجل");
+  if(row.type==="work")return toast("هذا قيد مالي. لا نحذفه مباشرة؛ يجب تصحيحه بقيد عكسي موثق حفاظاً على الحقوق.");
+  if(!confirm("حذف نص التسجيل الصوتي؟ لن يؤثر ذلك في أي حركة مالية."))return;
+  if(!RB.remove(id))return;
+  render();
+};
 window.voiceLedgerStart=function(){
  if(listening){toast("الميكروفون يعمل بالفعل");return;}
  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
