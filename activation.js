@@ -112,7 +112,7 @@ VIEWS.goals=()=>{
     const goals=Array.isArray(D.goals)?D.goals:[];
     const unitOptions=[["مرة","مرة"],["صفحة","صفحة"],["ساعة","ساعة"],["يوم","يوم"],["قطعة","قطعة"],["مبلغ","مبلغ مالي"],["وحدة","وحدة"]];
     const unitSelect=select("gunit","بماذا ستقيس الإنجاز؟",unitOptions.concat([["other","وحدة أخرى"]]),"مرة")+
-      '<input id="gcustomunit" type="text" maxlength="24" placeholder="اكتب وحدة القياس إذا اخترت وحدة أخرى" style="width:100%;margin:0 0 10px" hidden>';
+      '<input id="gcustomunit" type="text" maxlength="24" placeholder="اكتب وحدة القياس إذا اخترت وحدة أخرى" style="width:100%;margin:0 0 10px">';
     const cards=goals.map(g=>{
       const m=goalProgress(g.current,g.target),unit=escv(g.unit||"وحدة");
       const id=escv(g.id),current=Number.isFinite(Number(g.current))?Number(g.current):0,target=Number.isFinite(Number(g.target))?Number(g.target):0;
