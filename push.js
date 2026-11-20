@@ -16,7 +16,7 @@ async function enablePush(){
 function scheduleLocalReminder(){
  if(!RB.data.settings.pushSubscribed||!("Notification" in window)||Notification.permission!=="granted")return;
  const now=new Date(),date=iso(now);
- dayEvents(date).forEach(event=>{
+ RB.all("event").filter(event=>event.d===date).forEach(event=>{
   if(!event.t||event.reminderEnabled===false)return;
   const key="rimbook:"+event.id+":"+date+":"+event.t;
   if(reminded.has(key))return;
