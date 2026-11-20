@@ -2,7 +2,7 @@
 const RB = (() => {
   const KEY = "rimbook.v6";
   const def = () => ({
-    profile: { name: "", role: "employee", phone: "", email: "", city: "", birth: "", emergency: "", skills: "", photo: "", about: "Yasser-ALhussen\nkalimat2026go@gmail.com\ndaraa-syria\n\nrimbook © 2026" },
+    profile: { name: "", role: "employee", phone: "", email: "", city: "", workplace: "", jobTitle: "", birth: "", emergency: "", skills: "", photo: "", about: "" },
     settings: { theme: "dark", fs: 15, dailyRate: 50, otRate: 10, normalHoursPerDay: 8, holidayPayPercent: 0, overtimeEnabled: false, managerPhone: "", location: "موقع العمل", currency: "$", lang: "ar", enabled: {} },
     items: [], habits: [], goals: [], projects: [], contacts: [], invoices: [], activeProject: null
   });
@@ -11,9 +11,9 @@ const RB = (() => {
     const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
     const defaults = def();
     data = Object.assign(defaults, saved);
-    data.settings = Object.assign({}, defaults.settings, saved.settings || {});
+    data.settings = Object.assign({}, defaults.settings, saved.settings || {});\n    data.profile = Object.assign({}, defaults.profile, saved.profile || {});
   } catch (e) { data = def(); }
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} };
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); return true; } catch (e) { return false; } };
   return {
     get data() { return data; },
     all: t => data.items.filter(i => i.type === t),
@@ -109,13 +109,107 @@ VIEWS.tasks = () => {
 function addTask(){ const v = $("#tk-t").value; if(v){ RB.add({type:"task", title:v, done:false}); render(); } }
 function delItem(id){ RB.remove(id); render(); }
 
+function normalizeProfileDigits(value) {
+  return String(value || "").replace(/[٠-٩۰-۹]/g, ch => {
+    const a = "٠١٢٣٤٥٦٧٨٩", p = "۰۱۲۳۴۵۶۷۸۹";
+    const i = a.indexOf(ch);
+    return String(i >= 0 ? i : p.indexOf(ch));
+  });
+}
+function saveProfileField(key, value) {
+  const allowed = ["name","role","phone","email","city","workplace","jobTitle","birth","emergency","skills","about"];
+  if (!allowed.includes(key)) return;
+  const v = String(value ?? "").trim();
+  if (key === "email" && v && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) {
+    toast("صيغة البريد الإلكتروني غير صحيحة"); render(); return;
+  }
+  if (key === "phone" && v) {
+    const digits = normalizeProfileDigits(v).replace(/\D/g, "");
+    if (digits.length < 7 || digits.length > 15) {
+      toast("تحقق من رقم الهاتف (7 إلى 15 رقماً)"); render(); return;
+    }
+  }
+  if (key === "role" && !["employee","worker"].includes(v)) return;
+  RB.data.profile[key] = key === "phone" ? normalizeProfileDigits(v) : v;
+  if (!RB.save()) { toast("تعذر الحفظ: مساحة التخزين في الجهاز ممتلئة"); return; }
+  toast("تم حفظ بيانات الملف الشخصي");
+}
+function removeProfilePhoto() {
+  if (!RB.data.profile.photo) return;
+  if (!confirm("هل تريد حذف الصورة الشخصية؟")) return;
+  const previous = RB.data.profile.photo;
+  RB.data.profile.photo = "";
+  if (!RB.save()) { RB.data.profile.photo = previous; toast("تعذر حفظ التغيير"); return; }
+  render(); toast("تم حذف الصورة الشخصية");
+}
+function saveProfilePhoto(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+    toast("اختر صورة JPG أو PNG أو WebP فقط"); input.value = ""; return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    toast("حجم الصورة الأصلية يجب ألا يتجاوز 5 ميغابايت"); input.value = ""; return;
+  }
+  const reader = new FileReader();
+  reader.onerror = () => toast("تعذر قراءة الصورة");
+  reader.onload = () => {
+    const image = new Image();
+    image.onerror = () => toast("الصورة غير صالحة");
+    image.onload = () => {
+      const max = 512, scale = Math.min(1, max / Math.max(image.width, image.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return toast("تعذر تجهيز الصورة على هذا الجهاز");
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.78);
+      if (dataUrl.length > 420000) return toast("الصورة الناتجة كبيرة؛ اختر صورة أبسط");
+      const previous = RB.data.profile.photo;
+      RB.data.profile.photo = dataUrl;
+      if (!RB.save()) {
+        RB.data.profile.photo = previous;
+        toast("تعذر حفظ الصورة: مساحة التخزين غير كافية");
+        return;
+      }
+      render(); toast("تم حفظ الصورة الشخصية على هذا الجهاز");
+    };
+    image.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
 VIEWS.profile = () => {
-  const p = RB.data.profile;
-  return `<div class=card style="text-align:center">
-    <div class=avatar>👤</div><h2>${esc(p.name || "اسمك")}</h2>
-    <input style="width:100%;margin-top:8px" value="${esc(p.name)}" placeholder="اكتب اسمك هنا" onchange="RB.data.profile.name=this.value;RB.save();render()">
-  </div>
-  <div class=card><b>حول</b><textarea rows=4 style="width:100%">${esc(p.about)}</textarea></div>`;
+  const p = RB.data.profile || {};
+  const avatar = p.photo
+    ? '<img class="avatar" src="' + esc(p.photo) + '" alt="الصورة الشخصية" style="object-fit:cover">'
+    : '<div class="avatar" aria-label="لا توجد صورة">👤</div>';
+  const field = (label, key, type, placeholder) =>
+    '<label class="muted" for="profile-' + key + '">' + label + '</label>' +
+    '<input id="profile-' + key + '" type="' + (type || "text") + '" value="' + esc(p[key] || "") + '" placeholder="' + (placeholder || "") +
+    '" onchange="saveProfileField(\'' + key + '\',this.value)" style="width:100%;margin:4px 0 12px">';
+  return '<div class="card" style="text-align:center">' + avatar +
+    '<h2 style="margin:8px 0">' + esc(p.name || "الملف الشخصي") + '</h2>' +
+    '<p class="muted">بياناتك محفوظة على هذا الجهاز، ولا تُرسل إلى أي خدمة تلقائياً.</p>' +
+    '<label class="p" for="profile-photo" style="display:inline-block;padding:8px 14px;border-radius:10px;cursor:pointer;color:#fff;background:var(--p)">📷 اختيار صورة</label>' +
+    '<input id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" onchange="saveProfilePhoto(this)" style="display:none">' +
+    (p.photo ? '<button type="button" class="danger" onclick="removeProfilePhoto()">حذف الصورة</button>' : '') +
+    '</div><div class="card"><b>👤 المعلومات الأساسية</b>' +
+    field("الاسم الكامل","name","text","اكتب اسمك الكامل") +
+    '<label class="muted" for="profile-role">الصفة</label><select id="profile-role" onchange="saveProfileField(\'role\',this.value)" style="width:100%;margin:4px 0 12px">' +
+    '<option value="employee" ' + (p.role==="employee"?"selected":"") + '>موظف</option>' +
+    '<option value="worker" ' + (p.role==="worker"?"selected":"") + '>عامل</option></select>' +
+    field("رقم الهاتف","phone","tel","مع رمز الدولة إن أمكن") +
+    field("البريد الإلكتروني","email","email","example@email.com") +
+    '<p class="muted">إضافة البريد هنا للتواصل والتعريف فقط؛ لا تعني توثيق ملكيته أو ربط حساب Drive.</p>' +
+    '</div><div class="card"><b>🏢 العمل والعنوان</b>' +
+    field("المدينة أو العنوان","city","text","المدينة / المنطقة") +
+    field("جهة العمل أو الشركة","workplace","text","اسم الشركة أو مكان العمل") +
+    field("المسمى الوظيفي","jobTitle","text","مثلاً: محاسب، فني، عامل") +
+    field("تاريخ الميلاد (اختياري)","birth","date","") +
+    '<label class="muted" for="profile-skills">المهارات</label><textarea id="profile-skills" rows="2" style="width:100%;margin:4px 0 12px" onchange="saveProfileField(\'skills\',this.value)">' + esc(p.skills || "") + '</textarea>' +
+    '</div><div class="card"><b>📝 نبذة شخصية</b><textarea rows="3" placeholder="اكتب نبذة مختصرة عنك" style="width:100%;margin-top:6px" onchange="saveProfileField(\'about\',this.value)">' + esc(p.about || "") + '</textarea></div>' +
+    '<div class="card"><b>🔒 معلومات طوارئ (اختيارية وخاصة)</b><p class="muted">لا تظهر هذه المعلومات في التقارير العامة أو المشاركات.</p><textarea rows="2" placeholder="اسم شخص للتواصل ورقم هاتفه عند الضرورة" style="width:100%;margin-top:6px" onchange="saveProfileField(\'emergency\',this.value)">' + esc(p.emergency || "") + '</textarea></div>';
 };
 
 function savePayrollSetting(key, value) {
