@@ -23,6 +23,7 @@ function projectOptions(projects, selected) {
     const validSelected = rows.some(p => String(p.id) === String(selected)) ? String(selected) : "";
     return { options: [["", "عام — غير مرتبط بمشروع"], ...rows.map(p => [String(p.id), String(p.name)])], selected: validSelected, hasProjects: rows.length > 0 };
   }
+  const selectedProject=()=>{const el=document.getElementById("projectId");return el?(el.value||null):(D.activeProject||null);};
   const projectField=()=>{
     const data = projectOptions(D.projects, D.activeProject);
     return select("projectId","المشروع (اختياري)",data.options,data.selected) +
@@ -44,15 +45,31 @@ function projectOptions(projects, selected) {
  window.restoreLocal=input=>{const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const obj=JSON.parse(r.result);if(!obj||!Array.isArray(obj.items))throw 0;if(confirm("استبدال البيانات الحالية بالنسخة؟")){RB.replace(obj);render();toast("تمت الاستعادة");}}catch(e){toast("ملف غير صالح");}};r.readAsText(f);};
  function go(t){view=t;render();window.scrollTo(0,0);}
  window.go=go;
- window.createProject=()=>{const name=$v("pname").trim();if(!name)return toast("اكتب اسم المشروع");const p={id:"p"+Date.now(),name:name,color:"#22d3ee",budget:n("pbudget")};D.projects.push(p);D.activeProject=p.id;RB.save();render();};
- window.editProject=id=>{const p=D.projects.find(x=>x.id===id);if(!p)return;const v=prompt("اسم المشروع",p.name);if(v!==null){p.name=v.trim()||p.name;RB.save();render();}};
- window.setActiveProject=id=>{D.activeProject=id||null;RB.save();render();};
- window.delProject=id=>{if(!confirm("حذف المشروع وسجلاته؟"))return;D.projects=D.projects.filter(p=>p.id!==id);D.items=D.items.filter(x=>x.project!==id);if(D.activeProject===id)D.activeProject=null;RB.save();render();};
- window.addTask=()=>{const title=$v("ttitle").trim();if(!title)return toast("اكتب المهمة");RB.add({type:"task",title,due:$v("tdue"),priority:$v("tpriority"),project:$v("projectId")||D.activeProject||null,done:false});render();};
+  window.createProject=()=>{const name=$v("pname").trim();if(!name)return toast("اكتب اسم المشروع");const p={id:"p"+Date.now(),name,color:"#22d3ee",budget:n("pbudget")};if(!RB.transact(data=>{data.projects.push(p);data.activeProject=p.id;}))return;render();toast("تم إنشاء المشروع");};
+  window.editProject=id=>{const p=D.projects.find(x=>x.id===id);if(!p)return;const value=prompt("اسم المشروع",p.name);if(value===null)return;const name=value.trim();if(!name)return toast("اسم المشروع لا يمكن أن يكون فارغاً");if(!RB.transact(data=>{const row=data.projects.find(x=>x.id===id);if(row)row.name=name;}))return;render();};
+  window.setActiveProject=id=>{if(!RB.transact(data=>{data.activeProject=id||null;}))return;render();};
+  window.delProject=id=>{
+    const project=D.projects.find(p=>p.id===id);if(!project)return;
+    const linkedItems=D.items.filter(x=>x.project===id).length;
+    const linkedInvoices=(D.invoices||[]).filter(x=>x.project===id).length;
+    const linked=linkedItems+linkedInvoices;
+    const message=linked
+      ? "يرتبط بهذا المشروع "+linked+" سجلاً أو فاتورة. سيُحذف اسم المشروع فقط، وستبقى جميع السجلات والفواتير محفوظة وتصبح عامة. هل تريد المتابعة؟"
+      : "هل تريد حذف المشروع؟";
+    if(!confirm(message))return;
+    if(!RB.transact(data=>{
+      data.projects=data.projects.filter(p=>p.id!==id);
+      data.items.forEach(row=>{if(row.project===id)row.project=null;});
+      (data.invoices||[]).forEach(row=>{if(row.project===id)row.project=null;});
+      if(data.activeProject===id)data.activeProject=null;
+    }))return;
+    render();toast(linked?"حُذف المشروع وبقيت السجلات والفواتير محفوظة.":"تم حذف المشروع");
+  };
+  window.addTask=()=>{const title=$v("ttitle").trim();if(!title)return toast("اكتب المهمة");if(!RB.add({type:"task",title,due:$v("tdue"),priority:$v("tpriority"),project:selectedProject(),done:false}))return;render();};
  window.toggleTask=(id,v)=>{RB.patch(id,{done:v});render();};
  window.editTask=id=>{const t=D.items.find(x=>x.id===id);if(!t)return;const v=prompt("عنوان المهمة",t.title);if(v!==null){t.title=v;RB.save();render();}};
- window.addEvent=()=>{const title=$v("etitle").trim();if(!title)return toast("اكتب الموعد");RB.add({type:"event",title,d:$v("edate")||today(),t:$v("etime"),project:$v("projectId")||D.activeProject||null});render();};
- window.addNote=()=>{const body=$v("nbody").trim();if(!body)return toast("اكتب الملاحظة");RB.add({type:"note",title:$v("ntitle"),body,d:today(),project:$v("projectId")||D.activeProject||null});render();};
+  window.addEvent=()=>{const title=$v("etitle").trim();if(!title)return toast("اكتب الموعد");if(!RB.add({type:"event",title,d:$v("edate")||today(),t:$v("etime"),project:selectedProject()}))return;render();};
+  window.addNote=()=>{const body=$v("nbody").trim();if(!body)return toast("اكتب الملاحظة");if(!RB.add({type:"note",title:$v("ntitle"),body,d:today(),project:selectedProject()}))return;render();toast("تم حفظ الملاحظة");};
  window.editNote=id=>{const x=D.items.find(i=>i.id===id);if(!x)return;const v=prompt("نص الملاحظة",x.body||"");if(v!==null){x.body=v;RB.save();render();}};
  window.delItem=id=>{if(confirm("حذف العنصر؟")){RB.remove(id);render();}};
  window.addHabit=()=>{const name=$v("hname").trim();if(!name)return;D.habits.push({id:"h"+Date.now(),name,history:[]});RB.save();render();};
@@ -91,7 +108,7 @@ function goalProgress(current, target) {
     if(!RB.transact(data=>{data.goals=data.goals.filter(x=>String(x.id)!==String(id));}))return;
     render();
   };
- window.addWork=()=>{RB.add({type:"work",k:$v("wtype"),d:$v("wdate")||today(),ds:$v("wdesc"),due:n("wdue"),rec:n("wrec"),ot:n("wot"),project:$v("projectId")||D.activeProject||null});render();};
+  window.addWork=()=>{if(!RB.add({type:"work",k:$v("wtype"),d:$v("wdate")||today(),ds:$v("wdesc"),due:n("wdue"),rec:n("wrec"),ot:n("wot"),project:selectedProject()}))return;render();};
  window.saveProfile=()=>{Object.assign(D.profile,{name:$v("prname"),phone:$v("prphone"),email:$v("premail"),city:$v("prcity"),about:$v("prabout")});RB.save();render();toast("تم حفظ الملف");};
  window.saveSettings=()=>{D.settings.theme=$v("theme");D.settings.fs=Math.max(12,Math.min(24,n("fs")||15));D.settings.currency=$v("currency");D.profile.role=$v("role");D.settings.dailyRate=n("drate");D.settings.otRate=n("orate");D.settings.managerPhone=$v("manager");RB.save();render();};
  window.deleteItem=window.delItem;
