@@ -4,6 +4,8 @@ const assert = require("node:assert/strict");
 
 const activation = fs.readFileSync("activation.js", "utf8");
 const pro = fs.readFileSync("pro.js", "utf8");
+const voiceLedger = fs.readFileSync("voice-ledger.js", "utf8");
+const invoices = fs.readFileSync("invoices.js", "utf8");
 
 function extractFunction(source, name) {
   const match = source.match(new RegExp("function " + name + "\\([^)]*\\) \\{[\\s\\S]*?\\n  \\}"));
@@ -73,5 +75,12 @@ assert.match(activation, /data\.items\.forEach\(row=>\{if\(row\.project===id\)ro
 assert.match(pro, /const projectSelect=\$\("pproject"\)/);
 assert.ok(pro.includes('aria-label="فتح الملف الشخصي"'));
 assert.match(pro, /pill\("مباشر","ok"\)/);
+
+assert.ok(activation.includes('row.type==="work"'));
+assert.ok(activation.includes("بقيد عكسي موثق"));
+assert.ok(voiceLedger.includes('row.type==="work"'));
+assert.ok(voiceLedger.includes("لن يؤثر ذلك في أي حركة مالية"));
+assert.ok(invoices.includes("الحذف النهائي للفواتير متوقف"));
+assert.ok(activation.includes("ستبقى جميع السجلات والفواتير محفوظة"));
 
 console.log("UI behavior tests passed.");
