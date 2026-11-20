@@ -10,6 +10,25 @@ const normalize=s=>String(s||"").toLowerCase()
  .replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d))
  .replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d))
  .replace(/[،,]/g," ").replace(/\s+/g," ").trim();
+function applyWorkReversal(data,id,reason,now,newId){
+ const items=Array.isArray(data?.items)?data.items:null;
+ if(!items)return {ok:false,error:"تعذر الوصول إلى سجل الحركات"};
+ const original=items.find(x=>x.type==="work"&&String(x.id)===String(id));
+ if(!original)return {ok:false,error:"لم نعثر على الحركة الأصلية"};
+ if(original.isReversal)return {ok:false,error:"لا يمكن عكس قيد عكسي"};
+ if(original.reversedBy||items.some(x=>x.type==="work"&&String(x.reversalOf||"")===String(id)))return {ok:false,error:"سبق تصحيح هذه الحركة؛ لا يمكن عكسها مرة ثانية"};
+ const why=String(reason||"").trim();
+ if(why.length<3)return {ok:false,error:"اكتب سبب التصحيح بوضوح"};
+ const signed={};
+ ["due","rec","advance","expense","ot","otHours","normalHours","overtimePay"].forEach(key=>{
+  const value=Number(original[key]||0);
+  if(!Number.isFinite(value))throw new Error("invalid financial field");
+  signed[key]=-value;
+ });
+ const reversal={type:"work",k:original.k,d:original.d,ds:"قيد عكسي للحركة "+String(original.ds||original.k||"المالية"),project:original.project||null,...signed,isReversal:true,reversalOf:original.id,correctionReason:why,created:now,id:newId};
+ original.reversedBy=newId;original.reversalReason=why;original.reversedAt=now;items.push(reversal);
+ return {ok:true,originalId:original.id,reversalId:newId};
+}
 function parseSpoken(raw){
  const s=normalize(raw);
  const date=s.includes("امس")||s.includes("أمس")?iso(new Date(Date.now()-86400000)):today();
@@ -95,10 +114,20 @@ window.voiceLedgerQuick=function(kind){
 window.voiceLedgerListen=function(text){if(typeof speakText==="function")speakText(text,"ar-SA");else if("speechSynthesis" in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="ar-SA";speechSynthesis.speak(u);}else toast("الاستماع الصوتي غير مدعوم في هذا المتصفح");};
 window.voiceLedgerDelete=function(id){
   const row=RB.data.items.find(item=>String(item.id)===String(id));if(!row)return toast("لم نعثر على السجل");
-  if(row.type==="work")return toast("هذا قيد مالي. لا نحذفه مباشرة؛ يجب تصحيحه بقيد عكسي موثق حفاظاً على الحقوق.");
+  if(row.type==="work")return toast("هذا قيد مالي. لا نحذفه مباشرة؛ صححه بقيد عكسي موثق حفاظاً على الحقوق.");
   if(!confirm("حذف نص التسجيل الصوتي؟ لن يؤثر ذلك في أي حركة مالية."))return;
   if(!RB.remove(id))return;
   render();
+};
+window.applyWorkReversal=applyWorkReversal;
+window.reverseWorkEntry=function(id){
+ const reason=prompt("ما سبب تصحيح هذه الحركة؟");if(reason===null)return;
+ if(String(reason).trim().length<3)return toast("اكتب سبب التصحيح بوضوح");
+ const newId=Date.now().toString(36)+Math.random().toString(36).slice(2,8),now=Date.now();
+ const preview=applyWorkReversal(JSON.parse(JSON.stringify(RB.data)),id,reason,now,newId);if(!preview.ok)return toast(preview.error);
+ if(!confirm("سيُضاف قيد عكسي بالقيم المقابلة، وستبقى الحركة الأصلية محفوظة. لن تُحذف أي بيانات. هل تريد المتابعة؟"))return;
+ let result;const saved=RB.transact(data=>{result=applyWorkReversal(data,id,reason,now,newId);if(!result.ok)throw new Error(result.error);});
+ if(!saved)return;render();toast("تم حفظ القيد العكسي. أضف الحركة الصحيحة كسجل جديد.");
 };
 window.voiceLedgerStart=function(){
  if(listening){toast("الميكروفون يعمل بالفعل");return;}
@@ -141,7 +170,7 @@ VIEWS.voice=function(){
  const works=RB.all("work").slice().sort((a,b)=>(b.d||"").localeCompare(a.d||""));
  const month=document.getElementById("voiceMonth")?.value||today().slice(0,7);
  const monthRows=works.filter(w=>(w.d||"").startsWith(month));
- const worked=monthRows.filter(w=>w.k==="work").length,holidays=monthRows.filter(w=>w.k==="holiday").length;
+ const countedRows=monthRows.filter(w=>!w.isReversal&&!w.reversedBy);const worked=countedRows.filter(w=>w.k==="work").length,holidays=countedRows.filter(w=>w.k==="holiday").length;
  const due=monthRows.filter(w=>w.k==="work"||w.k==="holiday").reduce((s,w)=>s+(+w.due||0),0);
  const received=monthRows.filter(w=>w.k==="payment").reduce((s,w)=>s+(+w.rec||0),0);
  const expenses=monthRows.filter(w=>w.k==="expense").reduce((s,w)=>s+(+w.expense||0),0);
@@ -151,7 +180,7 @@ VIEWS.voice=function(){
  const kind={work:"عمل",holiday:"عطلة",payment:"دفعة مستلمة",advance:"سلفة",expense:"مصروف"};
  return '<div class="card"><b style="font-size:17px">🎙️ السجل الصوتي للعمال</b><p class="muted">قل جملة قصيرة مثل: «اليوم عمل واصل دفعة 10 دولار» أو «اليوم عطلة».</p><div class="grid3" style="margin:12px 0"><button class="card" style="min-height:88px;font-size:15px" onclick="voiceLedgerQuick(\'work\')">🧱<br><b>يوم عمل</b></button><button class="card" style="min-height:88px;font-size:15px" onclick="voiceLedgerQuick(\'holiday\')">🌴<br><b>عطلة</b></button><button class="card" style="min-height:88px;font-size:15px" onclick="voiceLedgerQuick(\'payment\')">💵<br><b>دفعة مستلمة</b></button><button class="card" style="min-height:88px;font-size:15px" onclick="voiceLedgerQuick(\'advance\')">🤝<br><b>سلفة</b></button><button class="card" style="min-height:88px;font-size:15px" onclick="voiceLedgerQuick(\'expense\')">🧾<br><b>مصروف</b></button></div><button class="p" style="font-size:16px;padding:12px 18px" onclick="voiceLedgerStart()">🎤 ابدأ التحدث</button><p class="muted">ستظهر معاينة لتأكيدها قبل إدخالها في الحسابات.</p></div>'+preview+
  '<div class="card"><b>📅 الحساب الشهري والتقويم</b><label class="muted">اختر الشهر</label><input id="voiceMonth" type="month" value="'+month+'" onchange="render()" style="width:100%"><div class="grid3" style="margin-top:8px"><div class="card">أيام العمل<h3>'+worked+'</h3></div><div class="card">العطل<h3>'+holidays+'</h3></div><div class="card">الدفعات<h3>'+monthRows.filter(w=>w.k==="payment").length+'</h3></div></div><div class="grid2"><div class="card">المستحق<h3>'+money(due)+'</h3></div><div class="card">واصل<h3 class="ok">'+money(received)+'</h3></div><div class="card">المصروف<h3>'+money(expenses)+'</h3></div><div class="card">السلفات<h3>'+money(advances)+'</h3></div><div class="card">المتبقي بعد السلفات<h3>'+money(due-received-advances)+'</h3></div></div></div>'+
- '<div class="card"><b>🗓️ سجل الشهر — جدول العمليات</b>'+(monthRows.length?monthRows.map(w=>'<div class="item"><span><b>'+escv(kind[w.k]||w.k)+'</b> · '+escv(w.ds||"")+'<br><small class="muted">'+escv(w.d)+' · '+(w.k==="work"?(escv(w.normalHours||0)+" ساعة عادية · "+escv(w.otHours||0)+" إضافية · أجر إضافي "+money(w.overtimePay||0))+" · ":"")+escv(w.voiceText||"إدخال يدوي")+'</small></span><b>'+money(w.due||w.rec||w.expense||w.advance)+'</b><button onclick="voiceLedgerListen('+JSON.stringify(w.voiceText||w.ds||"").replace(/</g,"\\u003c")+')">🔊</button><button class="danger" onclick="voiceLedgerDelete(\''+w.id+'\')">حذف</button></div>').join(""):'<p class="muted">لا توجد عمليات في هذا الشهر.</p>')+'</div>'+
+ '<div class="card"><b>🗓️ سجل الشهر — جدول العمليات</b>'+(monthRows.length?monthRows.map(w=>'<div class="item"><span><b>'+escv(kind[w.k]||w.k)+'</b> · '+escv(w.ds||"")+(w.isReversal?' <small class="hi">قيد عكسي</small>':w.reversedBy?' <small class="hi">تم عكسه بقيد موثق</small>':'')+'<br><small class="muted">'+escv(w.d)+' · '+(w.k==="work"?(escv(w.normalHours||0)+" ساعة عادية · "+escv(w.otHours||0)+" إضافية · أجر إضافي "+money(w.overtimePay||0))+" · ":"")+escv(w.voiceText||"إدخال يدوي")+(w.correctionReason?" · سبب التصحيح: "+escv(w.correctionReason):"")+'</small></span><b>'+money(w.due||w.rec||w.expense||w.advance)+'</b><button onclick="voiceLedgerListen('+JSON.stringify(w.voiceText||w.ds||"").replace(/</g,"\\u003c")+')">🔊</button>+(w.k!=="voice_log"&&!w.isReversal&&!w.reversedBy?'<button class="danger" onclick="reverseWorkEntry(\''+w.id+'\')">تصحيح بقيد عكسي</button>':w.isReversal?'':'<small class="muted">محفوظ</small>')</div>').join(""):'<p class="muted">لا توجد عمليات في هذا الشهر.</p>')+'</div>'+
  '<div class="card"><b>🎧 سجل العبارات الصوتية</b>'+(logs.length?logs.map(l=>'<div class="item"><span>'+escv(l.d)+'<br>'+escv(l.body)+'</span><button onclick="voiceLedgerListen('+JSON.stringify(l.body||"").replace(/</g,"\\u003c")+')">🔊 استماع</button><button class="danger" onclick="voiceLedgerDelete(\''+l.id+'\')">حذف</button></div>').join(""):'<p class="muted">لا توجد تسجيلات محفوظة بعد.</p>')+'</div>';
 };
 const oldRender=window.render;
