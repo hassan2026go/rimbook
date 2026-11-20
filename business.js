@@ -233,11 +233,4 @@ function drawMonthlyChart(){
   ctx.fillStyle = muted; ctx.fillText("واصل", W - 48, 12);
 }
 
-/* ==================== 5) المرفقات ==================== */
-async function addAttachment(itemId){
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = "image/*,application/pdf";
-  input.onchange = async () => {
-    const f = input.files[0]; if(!f) return;
-    if(f.size > 5 * 1024 * 1024) return toast("⚠️ الحد الأقصى 
+/* أزيل قسم المرفقات المبتور؛ إدارة المرفقات موجودة في attachments.js. */
