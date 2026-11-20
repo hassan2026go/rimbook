@@ -96,4 +96,5 @@ function setupSearch(){
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",setupSearch);else setupSearch();
 const style=document.createElement("style");style.textContent="@media(max-width:380px){#proSearch{width:82px!important}}[data-pro-task][hidden]{display:none!important}";document.head.appendChild(style);
+render();
 })();
