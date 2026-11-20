@@ -1,0 +1,28 @@
+{
+  "id": "./",
+  "name": "Rimbook - مفكرة شاملة ذكية",
+  "short_name": "Rimbook",
+  "description": "مفكرة شاملة ذكية بالصوت والمشاريع والمهام",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#090d16",
+  "theme_color": "#4f46e5",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "./rimbook-icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./rimbook-icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
