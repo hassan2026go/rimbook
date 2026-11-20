@@ -53,10 +53,13 @@ function parseSpoken(raw){
 }
 window.voiceLedgerParse=parseSpoken;
 window.voiceLedgerConfirm=function(){
- if(!pending)return;
+ const batch=pending;
+ if(!batch||batch.error||!Array.isArray(batch.items)||!batch.items.length)return;
+ const now=Date.now();
+ const makeId=()=>now.toString(36)+Math.random().toString(36).slice(2,8);
  const ok=RB.transact(d=>{
-  batch.items.forEach(x=>d.items.push({type:"work",...x,voice:true,voiceText:batch.raw,created:Date.now(),id:Date.now().toString(36)+Math.random().toString(36).slice(2,8)}));
-  d.items.push({type:"voice_log",d:batch.date,body:batch.raw,created:Date.now(),entries:batch.items.length,id:Date.now().toString(36)+Math.random().toString(36).slice(2,8)});
+  batch.items.forEach(x=>d.items.push({type:"work",...x,voice:true,voiceText:batch.raw,created:now,id:makeId()}));
+  d.items.push({type:"voice_log",d:batch.date,body:batch.raw,created:now,entries:batch.items.length,id:makeId()});
  });
  if(!ok)return;
  pending=null;render();toast("تم اعتماد التسجيل وحفظه في جدول العمل");
