@@ -41,19 +41,34 @@ window.voiceLedgerConfirm=function(){
  pending=null;RB.save();render();toast("تم اعتماد التسجيل وحفظه في جدول العمل");
 };
 window.voiceLedgerCancel=function(){pending=null;render();};
-window.voiceLedgerQuick=function(kind){
+function voiceLedgerSaveQuick(kind,amount){
  const labels={work:"يوم عمل",holiday:"عطلة",payment:"دفعة مستلمة",advance:"سلفة للعامل",expense:"مصروف"};
  if(!labels[kind])return;
- let amount=0;
- if(["payment","advance","expense"].includes(kind)){
-  const raw=prompt("أدخل المبلغ:");
-  if(raw===null)return;
-  amount=Number(String(raw).replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(",","."));
-  if(!Number.isFinite(amount)||amount<=0){toast("أدخل مبلغاً صحيحاً");return;}
- }
  const item={k:kind,d:today(),ds:labels[kind],due:kind==="work"?(Number(D.settings.dailyRate)||0):0,rec:kind==="payment"?amount:0,advance:kind==="advance"?amount:0,expense:kind==="expense"?amount:0,project:D.activeProject||null};
  RB.add({type:"work",...item,voice:false,created:Date.now()});
  RB.save();render();toast("تم تسجيل "+labels[kind]);
+}
+window.voiceLedgerAmountDigit=function(value){
+ const input=document.getElementById("voiceAmountInput");if(!input)return;
+ if(value==="clear")input.value="";
+ else if(value==="back")input.value=input.value.slice(0,-1);
+ else if(value==="dot"){if(!input.value.includes("."))input.value+=(input.value?".":"0.") ;}
+ else input.value+=value;
+};
+window.voiceLedgerAmountSubmit=function(kind){
+ const input=document.getElementById("voiceAmountInput");
+ const amount=Number(String(input?.value||"").replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(",","."));
+ if(!Number.isFinite(amount)||amount<=0){toast("أدخل مبلغاً صحيحاً");return;}
+ document.getElementById("voiceAmountDialog")?.remove();
+ voiceLedgerSaveQuick(kind,amount);
+};
+window.voiceLedgerQuick=function(kind){
+ const labels={work:"يوم عمل",holiday:"عطلة",payment:"دفعة مستلمة",advance:"سلفة للعامل",expense:"مصروف"};
+ if(!labels[kind])return;
+ if(!["payment","advance","expense"].includes(kind)){voiceLedgerSaveQuick(kind,0);return;}
+ document.getElementById("voiceAmountDialog")?.remove();
+ const keys=["1","2","3","4","5","6","7","8","9","clear","0","dot"];
+ document.body.insertAdjacentHTML("beforeend",'<div id="voiceAmountDialog" role="dialog" aria-modal="true" aria-label="إدخال المبلغ" style="position:fixed;inset:0;z-index:100;background:#000a;display:flex;align-items:center;justify-content:center;padding:16px"><div class="card" style="width:min(100%,360px);margin:0;background:var(--card);box-shadow:0 12px 40px #0008"><b style="font-size:18px">أدخل مبلغ: '+labels[kind]+'</b><input id="voiceAmountInput" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" style="width:100%;font-size:28px;text-align:center;margin:14px 0;padding:14px" readonly><div class="grid3">'+keys.map(k=>'<button type="button" style="min-height:54px;font-size:20px" onclick="voiceLedgerAmountDigit(\''+k+'\')">'+(k==="clear"?"مسح":k==="dot"?".":k)+'</button>').join("")+'<button type="button" style="min-height:54px" onclick="voiceLedgerAmountDigit(\'back\')">⌫</button></div><div class=row style="margin-top:12px"><button class=p style="flex:1;min-height:48px;font-size:16px" onclick="voiceLedgerAmountSubmit(\''+kind+'\')">تأكيد وحفظ</button><button type="button" style="min-height:48px" onclick="document.getElementById(\'voiceAmountDialog\').remove()">إلغاء</button></div></div></div>');
 };
 window.voiceLedgerListen=function(text){if(typeof speakText==="function")speakText(text,"ar-SA");else if("speechSynthesis" in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="ar-SA";speechSynthesis.speak(u);}else toast("الاستماع الصوتي غير مدعوم في هذا المتصفح");};
 window.voiceLedgerDelete=function(id){if(!confirm("حذف هذا السجل؟"))return;RB.remove(id);render();};
