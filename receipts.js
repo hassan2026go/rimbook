@@ -20,7 +20,9 @@
  };
  window.addRimReceipt=function(){
   const val=id=>document.getElementById(id)?.value?.trim()||"";
-  const person=val("rc-person"),phone=val("rc-phone"),kind=val("rc-kind"),amount=Number(val("rc-amount").replace(",","."));
+  const person=val("rc-person"),phone=val("rc-phone"),kind=val("rc-kind");
+  const rawAmount=val("rc-amount").replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[٫،,]/g,".");
+  const amount=Number(rawAmount);
   const date=val("rc-date")||today(),note=val("rc-note");
   if(!person)return toast("اكتب اسم الشخص");
   if(!Number.isFinite(amount)||amount<=0)return toast("أدخل مبلغاً صحيحاً");
