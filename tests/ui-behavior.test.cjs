@@ -151,8 +151,10 @@ assert.ok(voiceLedger.includes("راجع ما فهمه التطبيق قبل ا�
 
 
 {
-  const confirmMatch = voiceLedger.match(/window\\.voiceLedgerConfirm=function\\(\\)\\{[\\s\\S]*?\\n\\};/);
-  assert.ok(confirmMatch, "voice confirmation handler must exist");
+  const confirmStart = voiceLedger.indexOf("window.voiceLedgerConfirm=function(){");
+  const confirmEnd = voiceLedger.indexOf("\n};", confirmStart);
+  assert.ok(confirmStart >= 0 && confirmEnd > confirmStart, "voice confirmation handler must exist");
+  const confirmSource = voiceLedger.slice(confirmStart, confirmEnd + 3);
   function voiceConfirmHarness(saveOk) {
     const data = { items: [] };
     let rendered = 0;
@@ -169,7 +171,7 @@ assert.ok(voiceLedger.includes("راجع ما فهمه التطبيق قبل ا�
       Date,
       Math
     };
-    vm.runInNewContext(confirmMatch[0] + ";", context);
+    vm.runInNewContext(confirmSource + ";", context);
     return { context, data, messages, get rendered() { return rendered; } };
   }
   const failed = voiceConfirmHarness(false);
