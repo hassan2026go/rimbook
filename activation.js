@@ -156,7 +156,7 @@ VIEWS.goals=()=>{
  VIEWS.about=()=>box("حول Rimbook",'<div style="text-align:center;padding:12px"><h2 style="color:var(--ac)">Rimbook</h2><p>مفكرة شخصية لإدارة المشاريع والمهام والمواعيد والعمل والملفات.</p><hr><b>تطوير Yasser-ALhussen</b><br>📍 درعا - سوريا 🇸🇾<br>📧 <a href="mailto:kalimat2026go@gmail.com">kalimat2026go@gmail.com</a><p class="muted">تُحفظ بياناتك على هذا الجهاز. احتفظ بنسخة احتياطية عند تغيير الجهاز أو المتصفح.</p></div>');
 VIEWS.profile=()=>{
     const p=D.profile||{};
-    const photo=/^data:image\\/(jpeg|png|webp);base64,/i.test(p.photo||"");
+    const photo=/^data:image\/(jpeg|png|webp);base64,/i.test(p.photo||"");
     const avatar=photo?'<img class="avatar" src="'+escv(p.photo)+'" alt="صورتك الشخصية" style="object-fit:cover">':'<div class="avatar" aria-label="الصورة الشخصية">👤</div>';
     const profileField=(label,key,type,placeholder)=>'<label class="muted" for="profile-'+key+'">'+label+'</label><input id="profile-'+key+'" type="'+(type||"text")+'" value="'+escv(p[key]||"")+'" placeholder="'+(placeholder||"")+'" onchange="saveProfileField(\''+key+'\',this.value)" style="width:100%;margin:4px 0 12px">';
     return box("ملفي الشخصي",'<div style="text-align:center">'+avatar+'<h2>'+escv(p.name||"أهلاً بك")+'</h2><p class="muted">بياناتك الشخصية تبقى على هذا الجهاز ولا تُرسل تلقائياً.</p>'+
