@@ -11,7 +11,8 @@ const RB = (() => {
     const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
     const defaults = def();
     data = Object.assign(defaults, saved);
-    data.settings = Object.assign({}, defaults.settings, saved.settings || {});\n    data.profile = Object.assign({}, defaults.profile, saved.profile || {});
+    data.settings = Object.assign({}, defaults.settings, saved.settings || {});
+    data.profile = Object.assign({}, defaults.profile, saved.profile || {});
   } catch (e) { data = def(); }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); return true; } catch (e) { return false; } };
   return {
