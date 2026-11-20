@@ -28,7 +28,7 @@ function projectOptions(projects, selected) {
     return select("projectId","المشروع (اختياري)",data.options,data.selected) +
       (data.hasProjects
         ? '<p class="muted">اختر مشروعاً لربط السجل به، أو اتركه «عام» إذا لم يكن تابعاً لمشروع.</p>'
-        : '<p class="muted">«عام» يعني أن السجل غير مرتبط بمشروع. أنشئ مشروعاً من صفحة المشاريع ليظهر هنا تلقائياً.</p><button type="button" onclick="go(\\'projects\\')">إنشاء مشروع</button>');
+        : '<p class="muted">«عام» يعني أن السجل غير مرتبط بمشروع. أنشئ مشروعاً من صفحة المشاريع ليظهر هنا تلقائياً.</p><button type="button" onclick="go(\'projects\')">إنشاء مشروع</button>');
   };
  const empty=m=>'<p class="muted" style="text-align:center;padding:12px">'+m+'</p>';
  const box=(title,body)=>'<div class="card"><b>'+title+'</b>'+body+'</div>';
@@ -105,7 +105,7 @@ VIEWS.notes=()=>{
       field("ntitle","عنوان الملاحظة (اختياري)","text","مثلاً: ملاحظات اجتماع")+
       '<label class="muted" for="nbody">نص الملاحظة</label><textarea id="nbody" rows="5" style="width:100%" placeholder="اكتب ملاحظتك هنا..."></textarea>'+
       projectField()+'<button class="p" onclick="addNote()">حفظ الملاحظة</button>')+
-      box("الملاحظات المحفوظة ("+notes.length+")",notes.map(x=>'<div class=item style="display:block"><b>'+escv(x.title||"ملاحظة")+'</b><p class="muted">'+escv(x.d||"")+' · '+escv(proj(x.project))+'</p><p style="white-space:pre-wrap">'+escv(x.body||"")+'</p>'+(typeof attachmentsSection==="function"?attachmentsSection(x):"")+'<button onclick="editNote(\\''+escv(x.id)+'\\')">تعديل</button> <button class="danger" onclick="delItem(\\''+escv(x.id)+'\\')">حذف</button> '+(typeof noteSpeakBtn==="function"?noteSpeakBtn(x):"")+'</div>').join("")||empty("لا توجد ملاحظات بعد. أضف ملاحظتك الأولى من الأعلى."));
+      box("الملاحظات المحفوظة ("+notes.length+")",notes.map(x=>'<div class=item style="display:block"><b>'+escv(x.title||"ملاحظة")+'</b><p class="muted">'+escv(x.d||"")+' · '+escv(proj(x.project))+'</p><p style="white-space:pre-wrap">'+escv(x.body||"")+'</p>'+(typeof attachmentsSection==="function"?attachmentsSection(x):"")+'<button onclick="editNote(\''+escv(x.id)+'\')">تعديل</button> <button class="danger" onclick="delItem(\''+escv(x.id)+'\')">حذف</button> '+(typeof noteSpeakBtn==="function"?noteSpeakBtn(x):"")+'</div>').join("")||empty("لا توجد ملاحظات بعد. أضف ملاحظتك الأولى من الأعلى."));
   };
  VIEWS.habits=()=>box("عادة جديدة",field("hname","اسم العادة","text","مثلاً القراءة")+ '<button class=p onclick="addHabit()">إضافة</button>')+box("عاداتي",D.habits.map(h=>'<div class=item><span>'+escv(h.name)+' · '+((h.history||[]).length)+' يوم</span><button onclick="markHabit(\''+h.id+'\')">تم اليوم</button><button class=danger onclick="delHabit(\''+h.id+'\')">حذف</button></div>').join("")||empty("لا توجد عادات"));
 VIEWS.goals=()=>{
@@ -120,7 +120,7 @@ VIEWS.goals=()=>{
         '<div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Math.round(m.percent)+'"><div style="width:'+m.percent+'%"></div></div>'+
         '<p class="muted">'+Math.round(m.percent)+'٪ من الهدف'+(m.exceeded?' · تجاوزت الهدف 🎉':' · المتبقي '+m.remaining+' '+unit)+'</p>'+
         '<label class="muted" for="goal-current-'+id+'">تحديث ما أنجزته حتى الآن ('+unit+')</label>'+
-        '<div class="row"><input id="goal-current-'+id+'" type="number" min="0" step="any" inputmode="decimal" value="'+current+'" style="flex:1;min-width:90px"><button class="p" onclick="updateGoal(\\''+id+'\\')">حفظ الإنجاز</button><button class="danger" onclick="delGoal(\\''+id+'\\')">حذف الهدف</button></div></div>';
+        '<div class="row"><input id="goal-current-'+id+'" type="number" min="0" step="any" inputmode="decimal" value="'+current+'" style="flex:1;min-width:90px"><button class="p" onclick="updateGoal(\''+id+'\')">حفظ الإنجاز</button><button class="danger" onclick="delGoal(\''+id+'\')">حذف الهدف</button></div></div>';
     }).join("");
     return box("إنشاء هدف جديد",'<p class="muted">الهدف هو شيء تريد الوصول إليه. حدّد اسمه والعدد الذي تريد تحقيقه، ثم اختر وحدة القياس المناسبة.</p>'+
       field("gname","ماذا تريد أن تنجز؟","text","مثلاً: قراءة كتاب")+
@@ -141,17 +141,17 @@ VIEWS.profile=()=>{
     const p=D.profile||{};
     const photo=/^data:image\\/(jpeg|png|webp);base64,/i.test(p.photo||"");
     const avatar=photo?'<img class="avatar" src="'+escv(p.photo)+'" alt="صورتك الشخصية" style="object-fit:cover">':'<div class="avatar" aria-label="الصورة الشخصية">👤</div>';
-    const profileField=(label,key,type,placeholder)=>'<label class="muted" for="profile-'+key+'">'+label+'</label><input id="profile-'+key+'" type="'+(type||"text")+'" value="'+escv(p[key]||"")+'" placeholder="'+(placeholder||"")+'" onchange="saveProfileField(\\''+key+'\\',this.value)" style="width:100%;margin:4px 0 12px">';
+    const profileField=(label,key,type,placeholder)=>'<label class="muted" for="profile-'+key+'">'+label+'</label><input id="profile-'+key+'" type="'+(type||"text")+'" value="'+escv(p[key]||"")+'" placeholder="'+(placeholder||"")+'" onchange="saveProfileField(\''+key+'\',this.value)" style="width:100%;margin:4px 0 12px">';
     return box("ملفي الشخصي",'<div style="text-align:center">'+avatar+'<h2>'+escv(p.name||"أهلاً بك")+'</h2><p class="muted">بياناتك الشخصية تبقى على هذا الجهاز ولا تُرسل تلقائياً.</p>'+
       '<label class="p" for="profile-photo" style="display:inline-block;padding:8px 14px;border-radius:10px;cursor:pointer;color:#fff;background:var(--p)">اختيار صورة شخصية</label><input id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" onchange="saveProfilePhoto(this)" style="display:none">'+(p.photo?'<button class="danger" onclick="removeProfilePhoto()">حذف الصورة</button>':'')+'</div>')+
       box("المعلومات الأساسية",profileField("الاسم الكامل","name","text","اكتب اسمك")+
-      '<label class="muted" for="profile-role">الصفة</label><select id="profile-role" onchange="saveProfileField(\\'role\\',this.value)" style="width:100%;margin:4px 0 12px"><option value="employee" '+(p.role==="employee"?"selected":"")+'>موظف</option><option value="worker" '+(p.role==="worker"?"selected":"")+'>عامل</option></select>'+
+      '<label class="muted" for="profile-role">الصفة</label><select id="profile-role" onchange="saveProfileField(\'role\',this.value)" style="width:100%;margin:4px 0 12px"><option value="employee" '+(p.role==="employee"?"selected":"")+'>موظف</option><option value="worker" '+(p.role==="worker"?"selected":"")+'>عامل</option></select>'+
       profileField("رقم الهاتف","phone","tel","مع رمز الدولة إن أمكن")+profileField("البريد الإلكتروني","email","email","example@email.com"))+
       box("العمل والعنوان",profileField("المدينة أو المنطقة","city","text","المدينة")+profileField("مكان العمل أو الشركة","workplace","text","اسم جهة العمل")+profileField("المسمى الوظيفي","jobTitle","text","مثلاً: فني أو عامل")+
       profileField("تاريخ الميلاد (اختياري)","birth","date","")+
-      '<label class="muted" for="profile-skills">المهارات</label><textarea id="profile-skills" rows="2" style="width:100%" onchange="saveProfileField(\\'skills\\',this.value)">'+escv(p.skills||"")+'</textarea>')+
-      box("نبذة عنك",'<textarea rows="3" placeholder="اكتب نبذة مختصرة عنك" style="width:100%" onchange="saveProfileField(\\'about\\',this.value)">'+escv(p.about||"")+'</textarea>')+
-      box("معلومات طوارئ (اختيارية وخاصة)",'<p class="muted">لا تشارك هذه المعلومات في التقارير العامة.</p><textarea rows="2" placeholder="اسم شخص للتواصل ورقم هاتفه عند الضرورة" style="width:100%" onchange="saveProfileField(\\'emergency\\',this.value)">'+escv(p.emergency||"")+'</textarea>');
+      '<label class="muted" for="profile-skills">المهارات</label><textarea id="profile-skills" rows="2" style="width:100%" onchange="saveProfileField(\'skills\',this.value)">'+escv(p.skills||"")+'</textarea>')+
+      box("نبذة عنك",'<textarea rows="3" placeholder="اكتب نبذة مختصرة عنك" style="width:100%" onchange="saveProfileField(\'about\',this.value)">'+escv(p.about||"")+'</textarea>')+
+      box("معلومات طوارئ (اختيارية وخاصة)",'<p class="muted">لا تشارك هذه المعلومات في التقارير العامة.</p><textarea rows="2" placeholder="اسم شخص للتواصل ورقم هاتفه عند الضرورة" style="width:100%" onchange="saveProfileField(\'emergency\',this.value)">'+escv(p.emergency||"")+'</textarea>');
   };
  VIEWS.settings=()=>box("إعدادات التطبيق",select("theme","المظهر",[["dark","داكن"],["light","فاتح"]],D.settings.theme)+field("fs","حجم الخط","number","15",D.settings.fs)+select("currency","العملة",[["USD","USD"],["EUR","EUR"],["TRY","TRY"],["SYP","SYP"],["SAR","SAR"],["AED","AED"],["EGP","EGP"],["JOD","JOD"]],D.settings.currency)+select("role","نوع الحساب",[["employee","موظف"],["worker","عامل"]],D.profile.role)+field("drate","الأجر اليومي","number","",D.settings.dailyRate)+field("orate","أجر الإضافي","number","",D.settings.otRate)+field("manager","واتساب المدير","tel","",D.settings.managerPhone)+'<button class=p onclick="saveSettings()">حفظ الإعدادات</button><hr><b>الإشعارات والتذكير</b><p class=muted>التذكيرات المحلية تعمل أثناء فتح التطبيق فقط.</p><button onclick="enablePush()">تفعيل الإشعارات</button>');
  window.render=function(){const available=ROLES[D.profile.role]?.tabs||tabs;if(!available.includes(view))view="home";document.body.dataset.theme=D.settings.theme||"dark";document.body.style.fontSize=(D.settings.fs||15)+"px";$("#tabs").innerHTML=available.map(t=>'<button class="'+(t===view?"on":"")+'" onclick="go(\''+t+'\')"><span>'+TABS[t][0]+'</span>'+TABS[t][1]+'</button>').join("");$("#view").innerHTML=VIEWS[view]?VIEWS[view]():"";if(view==="stats"){if(typeof drawCharts==="function")drawCharts();if(typeof drawMonthlyChart==="function")drawMonthlyChart();}};
