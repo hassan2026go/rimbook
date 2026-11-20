@@ -86,26 +86,6 @@ VIEWS.stats=function(){
  const all=tasks(),done=all.filter(t=>t.done).length,late=all.filter(isLate).length,work=RB.all("work"),due=work.reduce((s,x)=>s+(+x.due||0),0),paid=work.reduce((s,x)=>s+(+x.rec||0),0);
  return '<div class="grid2"><div class="card">إجمالي المهام<h2>'+all.length+'</h2></div><div class="card">نسبة الإنجاز<h2>'+(all.length?Math.round(done*100/all.length):0)+'%</h2></div><div class="card">المهام المتأخرة<h2 class="hi">'+late+'</h2></div><div class="card">المشاريع<h2>'+(D.projects||[]).length+'</h2></div></div><div class="card"><b>ملخص مالي</b><p>المستحق: <b>'+money(due)+'</b></p><p>المقبوض: <b class="ok">'+money(paid)+'</b></p><p>المتبقي: <b class="hi">'+money(due-paid)+'</b></p></div><div class="card"><b>إنجاز المهام خلال الأسبوع</b><canvas id="chartTasks" width="400" height="180"></canvas></div><div class="card"><b>المشاريع</b><canvas id="chartProjects" width="400" height="200"></canvas></div><div class="card"><b>المقارنة الشهرية</b><canvas id="chartMonthly" width="400" height="180"></canvas>'+(typeof monthlyCompareTable==="function"?monthlyCompareTable():"")+'</div>';
 };
-// بحث موحد سريع في بيانات الجهاز
-function setupSearch(){
- const hdr=document.querySelector("header"),holder=hdr?.querySelector(".hdr");
- if(!holder||$("proSearch"))return;
- const input=document.createElement("input");input.id="proSearch";input.type="search";input.placeholder="بحث سريع…";input.setAttribute("aria-label","بحث في Rimbook");input.style.cssText="width:112px;min-width:70px;padding:7px;font-size:12px";
- const panel=document.createElement("div");panel.id="proSearchResults";panel.hidden=true;panel.style.cssText="position:fixed;z-index:60;top:58px;left:8px;right:8px;max-height:55vh;overflow:auto;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:8px;box-shadow:0 8px 30px #0005";
- holder.insertBefore(input,holder.firstChild);document.body.appendChild(panel);
- input.addEventListener("input",()=>{
-  const q=input.value.trim().toLocaleLowerCase();if(q.length<2){panel.hidden=true;return;}
-  const results=[];
-  (D.projects||[]).forEach(x=>{if(x.name?.toLocaleLowerCase().includes(q))results.push({title:x.name,sub:"مشروع",view:"projects"});});
-  RB.data.items.forEach(x=>{const str=[x.title,x.body,x.ds,x.d].join(" ").toLocaleLowerCase();if(str.includes(q))results.push({title:x.title||x.ds||x.body||"عنصر",sub:({task:"مهمة",event:"موعد",note:"ملاحظة",work:"حركة مالية"}[x.type]||"سجل"),view:({task:"tasks",event:"agenda",note:"notes",work:"ledger"}[x.type]||"home")});});
-  (D.contacts||[]).forEach(x=>{if([x.name,x.phone,x.email,x.company].join(" ").toLocaleLowerCase().includes(q))results.push({title:x.name,sub:"جهة اتصال",view:"contacts"});});
-  panel.innerHTML=results.slice(0,12).map((x,i)=>'<button data-search-index="'+i+'" style="display:flex;width:100%;justify-content:space-between;margin:3px 0;text-align:right"><b>'+safe(x.title).slice(0,90)+'</b><small class="muted">'+safe(x.sub)+'</small></button>').join("")||(q.length>=2?'<p class="muted">لا توجد نتائج مطابقة.</p>':"");
-  panel.querySelectorAll("button[data-search-index]").forEach((b,i)=>b.addEventListener("click",()=>{panel.hidden=true;input.value="";go(results[i].view);}));
-  panel.hidden=false;
- });
- document.addEventListener("click",e=>{if(!panel.contains(e.target)&&e.target!==input)panel.hidden=true;});
-}
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",setupSearch);else setupSearch();
-const style=document.createElement("style");style.textContent="@media(max-width:380px){#proSearch{width:82px!important}}[data-pro-task][hidden]{display:none!important}";document.head.appendChild(style);
+const style=document.createElement("style");style.textContent="[data-pro-task][hidden]{display:none!important}";document.head.appendChild(style);
 render();
 })();
