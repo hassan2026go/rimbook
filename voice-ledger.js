@@ -35,10 +35,12 @@ function parseSpoken(raw){
 window.voiceLedgerParse=parseSpoken;
 window.voiceLedgerConfirm=function(){
  if(!pending)return;
- const batch=pending;
- batch.items.forEach(x=>RB.add({type:"work",...x,voice:true,voiceText:batch.raw,created:Date.now()}));
- RB.add({type:"voice_log",d:batch.date,body:batch.raw,created:Date.now(),entries:batch.items.length});
- pending=null;RB.save();render();toast("تم اعتماد التسجيل وحفظه في جدول العمل");
+ const ok=RB.transact(d=>{
+  batch.items.forEach(x=>d.items.push({type:"work",...x,voice:true,voiceText:batch.raw,created:Date.now(),id:Date.now().toString(36)+Math.random().toString(36).slice(2,8)}));
+  d.items.push({type:"voice_log",d:batch.date,body:batch.raw,created:Date.now(),entries:batch.items.length,id:Date.now().toString(36)+Math.random().toString(36).slice(2,8)});
+ });
+ if(!ok)return;
+ pending=null;render();toast("تم اعتماد التسجيل وحفظه في جدول العمل");
 };
 window.voiceLedgerCancel=function(){pending=null;render();};
 function voiceLedgerSaveQuick(kind,amount,workDetails){
@@ -51,16 +53,17 @@ function voiceLedgerSaveQuick(kind,amount,workDetails){
  const overtimePay=kind==="work"&&overtimeEnabled?otHours*otRate:0;
  const item={k:kind,d:today(),ds:labels[kind],due:kind==="work"?(Number(D.settings.dailyRate)||0)+overtimePay:kind==="holiday"?(Number(D.settings.dailyRate)||0)*(Math.min(100,Math.max(0,Number(D.settings.holidayPayPercent)||0))/100):0,rec:kind==="payment"?amount:0,advance:kind==="advance"?amount:0,expense:kind==="expense"?amount:0,project:D.activeProject||null};
  if(kind==="work"){item.normalHours=normalHours;item.otHours=otHours;item.overtimePay=overtimePay;item.overtimeRate=otRate;}
- RB.add({type:"work",...item,voice:false,created:Date.now()});
- RB.save();render();toast("تم تسجيل "+labels[kind]+(otHours?" مع "+otHours+" ساعة إضافية":""));
+ const saved=RB.add({type:"work",...item,voice:false,created:Date.now()});
+ if(!saved)return false;
+ render();toast("تم تسجيل "+labels[kind]+(otHours?" مع "+otHours+" ساعة إضافية":""));
+ return true;
 }
 window.voiceLedgerWorkSubmit=function(){
  const normal=Number(document.getElementById("workNormalHours")?.value||D.settings.normalHoursPerDay||8);
  const overtime=Number(document.getElementById("workOvertimeHours")?.value||0);
  if(!Number.isFinite(normal)||normal<=0||normal>24||!Number.isFinite(overtime)||overtime<0||overtime>24){toast("تحقق من عدد ساعات العمل");return;}
  if(overtime>0&&!D.settings.overtimeEnabled){toast("فعّل سياسة العمل الإضافي من الإعدادات أولاً");return;}
- document.getElementById("voiceWorkDialog")?.remove();
- voiceLedgerSaveQuick("work",0,{normalHours:normal,otHours:overtime});
+ if(voiceLedgerSaveQuick("work",0,{normalHours:normal,otHours:overtime})) document.getElementById("voiceWorkDialog")?.remove();
 };
 window.voiceLedgerAmountDigit=function(value){
  const input=document.getElementById("voiceAmountInput");if(!input)return;
@@ -73,8 +76,7 @@ window.voiceLedgerAmountSubmit=function(kind){
  const input=document.getElementById("voiceAmountInput");
  const amount=Number(String(input?.value||"").replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace("٫",".").replace(",","."));
  if(!Number.isFinite(amount)||amount<=0){toast("أدخل مبلغاً صحيحاً");return;}
- document.getElementById("voiceAmountDialog")?.remove();
- voiceLedgerSaveQuick(kind,amount);
+ if(voiceLedgerSaveQuick(kind,amount)) document.getElementById("voiceAmountDialog")?.remove();
 };
 window.voiceLedgerQuick=function(kind){
  const labels={work:"يوم عمل",holiday:"عطلة",payment:"دفعة مستلمة",advance:"سلفة للعامل",expense:"مصروف"};
@@ -91,7 +93,7 @@ window.voiceLedgerQuick=function(kind){
  document.body.insertAdjacentHTML("beforeend",'<div id="voiceAmountDialog" role="dialog" aria-modal="true" aria-label="إدخال المبلغ" style="position:fixed;inset:0;z-index:100;background:#000a;display:flex;align-items:center;justify-content:center;padding:16px"><div class="card" style="width:min(100%,360px);margin:0;background:var(--card);box-shadow:0 12px 40px #0008"><b style="font-size:18px">أدخل مبلغ: '+labels[kind]+'</b><input id="voiceAmountInput" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" style="width:100%;font-size:28px;text-align:center;margin:14px 0;padding:14px" readonly><div class="grid3">'+keys.map(k=>'<button type="button" style="min-height:54px;font-size:20px" onclick="voiceLedgerAmountDigit(\''+k+'\')">'+(k==="clear"?"مسح":k==="dot"?".":k)+'</button>').join("")+'<button type="button" style="min-height:54px" onclick="voiceLedgerAmountDigit(\'back\')">⌫</button></div><div class=row style="margin-top:12px"><button class=p style="flex:1;min-height:48px;font-size:16px" onclick="voiceLedgerAmountSubmit(\''+kind+'\')">تأكيد وحفظ</button><button type="button" style="min-height:48px" onclick="document.getElementById(\'voiceAmountDialog\').remove()">إلغاء</button></div></div></div>');
 };
 window.voiceLedgerListen=function(text){if(typeof speakText==="function")speakText(text,"ar-SA");else if("speechSynthesis" in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="ar-SA";speechSynthesis.speak(u);}else toast("الاستماع الصوتي غير مدعوم في هذا المتصفح");};
-window.voiceLedgerDelete=function(id){if(!confirm("حذف هذا السجل؟"))return;RB.remove(id);render();};
+window.voiceLedgerDelete=function(id){if(!confirm("حذف هذا السجل؟"))return;if(!RB.remove(id))return;render();};
 window.voiceLedgerStart=function(){
  if(listening){toast("الميكروفون يعمل بالفعل");return;}
  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
