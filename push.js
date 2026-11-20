@@ -29,7 +29,7 @@ function scheduleLocalReminder(){
       setTimeout(() => {
         new Notification("⏰ rimbook", {
           body: `${e.title} بعد ${Math.round(diff)} دقيقة`,
-          icon: "icon-192.png",
+          icon: "./rimbook-icon-192x192.png",
           tag: key
         });
       }, Math.max(0, diff * 60000 - 60000));
