@@ -89,6 +89,12 @@ function goalProgress(current, target) {
     return { done, total, percent, remaining: Math.max(0, total - done), exceeded: total > 0 && done > total };
   }
   window.goalProgress = goalProgress;
+  window.toggleGoalCustomUnit=value=>{
+    const input=document.getElementById("gcustomunit"),label=document.getElementById("gcustomunit-label");
+    const show=value==="other";
+    if(input)input.hidden=!show;
+    if(label)label.hidden=!show;
+  };
   window.addGoal=()=>{
     const name=$v("gname").trim(), target=Number($v("gtarget")), current=Number($v("gcurrent"));
     const selectedUnit=$v("gunit"), customUnit=$v("gcustomunit").trim();
@@ -134,8 +140,9 @@ VIEWS.notes=()=>{
 VIEWS.goals=()=>{
     const goals=Array.isArray(D.goals)?D.goals:[];
     const unitOptions=[["مرة","مرة"],["صفحة","صفحة"],["ساعة","ساعة"],["يوم","يوم"],["قطعة","قطعة"],["مبلغ","مبلغ مالي"],["وحدة","وحدة"]];
-    const unitSelect=select("gunit","بماذا ستقيس الإنجاز؟",unitOptions.concat([["other","وحدة أخرى"]]),"مرة")+
-      '<input id="gcustomunit" type="text" maxlength="24" placeholder="اكتب وحدة القياس إذا اخترت وحدة أخرى" style="width:100%;margin:0 0 10px">';
+    const unitSelect=select("gunit","بماذا ستقيس الإنجاز؟",unitOptions.concat([["other","وحدة أخرى"]]),"مرة")
+      .replace('<select id="gunit"','<select id="gunit" onchange="toggleGoalCustomUnit(this.value)"')+
+      '<label id="gcustomunit-label" class="muted" for="gcustomunit" hidden>اكتب اسم وحدة القياس</label><input id="gcustomunit" type="text" maxlength="24" placeholder="مثلاً: درس أو كيلومتر" style="width:100%;margin:0 0 10px" hidden>';
     const cards=goals.map(g=>{
       const m=goalProgress(g.current,g.target),unit=escv(g.unit||"وحدة");
       const id=escv(g.id),current=Number.isFinite(Number(g.current))?Number(g.current):0,target=Number.isFinite(Number(g.target))?Number(g.target):0;
