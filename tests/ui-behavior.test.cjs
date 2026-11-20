@@ -68,7 +68,10 @@ assert.match(activation, /عام.*غير مرتبط بمشروع/);
 assert.match(activation, /saveProfilePhoto\(this\)/);
 assert.match(activation, /saveProfileField\(/);
 assert.match(pro, /home-profile/);
-assert.match(pro, /go\('profile'\)/);
+assert.match(activation, /project:selectedProject\(\)/);
+assert.match(activation, /data\.items\.forEach\(row=>\{if\(row\.project===id\)row\.project=null;\}\)/);
+assert.match(pro, /const projectSelect=\$\("pproject"\)/);
+assert.ok(pro.includes('aria-label="فتح الملف الشخصي"'));
 assert.match(pro, /pill\("مباشر","ok"\)/);
 
 console.log("UI behavior tests passed.");
