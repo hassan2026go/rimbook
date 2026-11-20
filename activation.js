@@ -23,7 +23,7 @@
  const box=(title,body)=>'<div class="card"><b>'+title+'</b>'+body+'</div>';
  window.activeProj=active;
  window.dayEvents=date=>list("event").filter(e=>e.d===date);
- window.ledgerTotals=()=>list("work").reduce((a,w)=>({due:a.due+(+w.due||0),rec:a.rec+(+w.rec||0),rem:a.rem+(+w.due||0)-(+w.rec||0)}),{due:0,rec:0,rem:0});
+ window.ledgerTotals=()=>list("work").reduce((a,w)=>{a.due+=(+w.due||0);a.rec+=(+w.rec||0);a.adv+=(+w.advance||0);a.expenses+=(+w.expense||0);a.rem+=(+w.due||0)-(+w.rec||0)-(+w.advance||0);return a;},{due:0,rec:0,adv:0,expenses:0,rem:0});
  window.dl=(name,content,type)=>{const u=URL.createObjectURL(new Blob([content],{type:type||"text/plain"}));const a=document.createElement("a");a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1500);};
  window.backupLocal=()=>dl("rimbook-backup-"+today()+".json",JSON.stringify(D,null,2),"application/json");
  window.csvW=()=>{const rows=[["التاريخ","النوع","البيان","مستحق","واصل","إضافي","المشروع"]];list("work").forEach(w=>rows.push([w.d,w.k,w.ds,w.due,w.rec,w.ot,proj(w.project)]));dl("rimbook-work.csv","\uFEFF"+rows.map(r=>r.map(x=>'"'+String(x??"").replace(/"/g,'""')+'"').join(",")).join("\r\n"),"text/csv;charset=utf-8");};
