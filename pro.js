@@ -18,12 +18,24 @@ const pill=(txt,kind="")=>'<span class="tag '+kind+'">'+txt+'</span>';
 window.proTaskFilter="open";
 window.proAddTask=function(){
  const title=$("ptitle")?.value.trim(); if(!title)return toast("اكتب عنوان المهمة");
+ const projectSelect=$("pproject");
+ const project=projectSelect?(projectSelect.value||null):(D.activeProject||null);
+ const row=RB.add({type:"task",title,due:$("pdue")?.value||"",priority:$("ppriority")?.value||"normal",project,done:false,created:Date.now()});
+ if(!row)return;
+ render();toast("أضيفت المهمة");
+};
+ const title=$("ptitle")?.value.trim(); if(!title)return toast("اكتب عنوان المهمة");
  RB.add({type:"task",title,due:$("pdue")?.value||"",priority:$("ppriority")?.value||"normal",project:$("pproject")?.value||D.activeProject||null,done:false,created:Date.now()});
  render();toast("أضيفت المهمة");
 };
 window.proSetTaskFilter=function(f){window.proTaskFilter=f;render();};
 window.proToggleTask=function(id,done){RB.patch(id,{done});render();};
 window.proAddProject=function(){
+ const name=$("ppname")?.value.trim();if(!name)return toast("اكتب اسم المشروع");
+ const p={id:"p"+Date.now().toString(36),name,color:"#22d3ee",budget:Number($("ppbudget")?.value)||0,due:$("ppdue")?.value||"",status:"active",createdAt:Date.now()};
+ if(!RB.transact(data=>{data.projects.push(p);data.activeProject=p.id;}))return;
+ render();toast("تم إنشاء المشروع");
+};
  const name=$("ppname")?.value.trim();if(!name)return toast("اكتب اسم المشروع");
  const p={id:"p"+Date.now().toString(36),name,color:"#22d3ee",budget:Number($("ppbudget")?.value)||0,due:$("ppdue")?.value||"",status:"active",createdAt:Date.now()};
  D.projects.push(p);D.activeProject=p.id;RB.save();render();toast("تم إنشاء المشروع");
@@ -73,7 +85,7 @@ VIEWS.projects=function(){
  const cards=(D.projects||[]).map(p=>{const pr=taskProgress(p.id),w=RB.all("work").filter(x=>x.project===p.id),due=w.reduce((s,x)=>s+(+x.due||0),0),paid=w.reduce((s,x)=>s+(+x.rec||0),0);return '<div class="card"><div class="row" style="justify-content:space-between"><b>'+safe(p.name)+'</b>'+pill(p.status==="done"?"مكتمل":"نشط",p.status==="done"?"ok":"")+'</div><div class="progress"><div style="width:'+pr.percent+'%"></div></div><small class="muted">'+pr.done+' من '+pr.total+' مهام مكتملة'+(p.due?" · الموعد "+safe(p.due):"")+'</small><div class="grid3" style="margin-top:8px"><div><small class="muted">الميزانية</small><b>'+money(p.budget)+'</b></div><div><small class="muted">المستحق</small><b>'+money(due)+'</b></div><div><small class="muted">المقبوض</small><b>'+money(paid)+'</b></div></div><div class="row" style="margin-top:8px"><button class="p" onclick="setActiveProject(\''+p.id+'\')">فتح المشروع</button><button onclick="editProject(\''+p.id+'\')">تعديل الاسم</button><button onclick="proProjectStatus(\''+p.id+'\')">'+(p.status==="done"?"إعادة فتح":"إنهاء")+'</button><button class="danger" onclick="delProject(\''+p.id+'\')">حذف</button></div></div>';}).join("");
  return '<div class="card"><b>＋ إنشاء مشروع</b><input id="ppname" placeholder="اسم المشروع" style="width:100%;margin:6px 0"><div class="grid2"><input id="ppbudget" type="number" min="0" placeholder="الميزانية"><input id="ppdue" type="date" aria-label="تاريخ التسليم"></div><button class="p" style="margin-top:8px" onclick="proAddProject()">إنشاء المشروع</button></div>'+ (cards||'<div class="card muted">لا توجد مشاريع. أنشئ أول مشروع لتنظيم عملك.</div>');
 };
-window.proProjectStatus=function(id){const p=D.projects.find(x=>x.id===id);if(!p)return;p.status=p.status==="done"?"active":"done";RB.save();render();};
+window.proProjectStatus=function(id){const p=D.projects.find(x=>x.id===id);if(!p)return;const next=p.status==="done"?"active":"done";if(!RB.transact(data=>{const row=data.projects.find(x=>x.id===id);if(row)row.status=next;}))return;render();};
 VIEWS.agenda=function(){
  const upcoming=events().slice().sort((a,b)=>(String(a.d||"").localeCompare(String(b.d||""))||String(a.t||"").localeCompare(String(b.t||""))));
  return '<div class="card"><b>＋ تسجيل موعد</b><input id="etitle" placeholder="عنوان الموعد" style="width:100%;margin:6px 0"><div class="grid2"><input id="edate" type="date" value="'+today()+'"><input id="etime" type="time"></div><select id="projectId" style="width:100%;margin:8px 0"><option value="">موعد عام</option>'+(D.projects||[]).map(p=>'<option value="'+safe(p.id)+'">'+safe(p.name)+'</option>').join("")+'</select><button class="p" onclick="addEvent()">حفظ الموعد</button></div><div class="card"><b>المواعيد المسجلة ('+upcoming.length+')</b>'+(upcoming.map(e=>'<div class="item"><span><b>'+safe(e.title)+'</b><br><small class="muted">'+safe(e.d)+' '+safe(e.t||"")+' · '+safe(projectName(e.project))+'</small></span><button class="danger" onclick="delItem(\''+e.id+'\')">حذف</button></div>').join("")||'<p class="muted">لا توجد مواعيد بعد.</p>')+'</div>';
