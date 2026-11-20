@@ -114,7 +114,7 @@ VIEWS.voice=function(){
  const month=document.getElementById("voiceMonth")?.value||today().slice(0,7);
  const monthRows=works.filter(w=>(w.d||"").startsWith(month));
  const worked=monthRows.filter(w=>w.k==="work").length,holidays=monthRows.filter(w=>w.k==="holiday").length;
- const due=monthRows.filter(w=>w.k==="work").reduce((s,w)=>s+(+w.due||0),0);
+ const due=monthRows.filter(w=>w.k==="work"||w.k==="holiday").reduce((s,w)=>s+(+w.due||0),0);
  const received=monthRows.filter(w=>w.k==="payment").reduce((s,w)=>s+(+w.rec||0),0);
  const expenses=monthRows.filter(w=>w.k==="expense").reduce((s,w)=>s+(+w.expense||0),0);
  const advances=monthRows.filter(w=>w.k==="advance").reduce((s,w)=>s+(+w.advance||0),0);
