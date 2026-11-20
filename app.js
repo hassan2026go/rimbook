@@ -15,7 +15,7 @@ const RB = (() => {
     add(o) { o.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6); o.created = Date.now(); data.items.push(o); save(); return o; },
     patch(id, p) { const i = data.items.find(x => x.id === id); if (i) Object.assign(i, p); save(); },
     remove(id) { data.items = data.items.filter(x => x.id !== id); save(); },
-    save, replace(obj) { data = Object.assign(def(), obj); save(); }
+    save, replace(obj) { Object.keys(data).forEach(k => delete data[k]); Object.assign(data, def(), obj); save(); }
   };
 })();
 
