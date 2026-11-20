@@ -3,11 +3,16 @@ const RB = (() => {
   const KEY = "rimbook.v6";
   const def = () => ({
     profile: { name: "", role: "employee", phone: "", email: "", city: "", birth: "", emergency: "", skills: "", photo: "", about: "Yasser-ALhussen\nkalimat2026go@gmail.com\ndaraa-syria\n\nrimbook © 2026" },
-    settings: { theme: "dark", fs: 15, dailyRate: 50, otRate: 10, managerPhone: "", location: "موقع العمل", currency: "$", lang: "ar", enabled: {} },
+    settings: { theme: "dark", fs: 15, dailyRate: 50, otRate: 10, normalHoursPerDay: 8, holidayPayPercent: 0, overtimeEnabled: false, managerPhone: "", location: "موقع العمل", currency: "$", lang: "ar", enabled: {} },
     items: [], habits: [], goals: [], projects: [], contacts: [], invoices: [], activeProject: null
   });
   let data;
-  try { data = Object.assign(def(), JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) { data = def(); }
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
+    const defaults = def();
+    data = Object.assign(defaults, saved);
+    data.settings = Object.assign({}, defaults.settings, saved.settings || {});
+  } catch (e) { data = def(); }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} };
   return {
     get data() { return data; },
@@ -116,7 +121,7 @@ VIEWS.profile = () => {
 function savePayrollSetting(key, value) {
   if (["dailyRate","otRate","normalHoursPerDay","holidayPayPercent"].includes(key)) {
     const n = Number(value);
-    if (!Number.isFinite(n) || n < 0 || (key === "holidayPayPercent" && n > 100) || (key === "normalHoursPerDay" && n === 0)) {
+    if (!Number.isFinite(n) || n < 0 || (key === "holidayPayPercent" && n > 100) || (key === "normalHoursPerDay" && (n === 0 || n > 24))) {
       toast("أدخل قيمة صحيحة");
       render();
       return;
