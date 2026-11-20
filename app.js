@@ -127,6 +127,62 @@ async function requestRimbookPersistence() {
   toast(ok ? "وافق المتصفح على طلب حماية بيانات المفكرة من الإزالة التلقائية." : "لم يمنح المتصفح التخزين الدائم. هذا لا يمنع الاستخدام، لكنه لا يضمن بقاء البيانات عند تنظيف مساحة المتصفح.");
 }
 function go(t){ view = t; render(); window.scrollTo(0,0); }
+function normalizeSearchText(value) {
+  return String(value ?? "").toLocaleLowerCase("ar")
+    .normalize("NFD").replace(/[\\u064B-\\u065F\\u0670]/g, "")
+    .replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه")
+    .replace(/[\\u0640]/g, "").replace(/\\s+/g, " ").trim();
+}
+function searchRecordText(value, depth=0) {
+  if (depth > 2 || value == null) return "";
+  if (["string","number","boolean"].includes(typeof value)) return String(value);
+  if (Array.isArray(value)) return value.map(v=>searchRecordText(v,depth+1)).join(" ");
+  if (typeof value !== "object") return "";
+  return Object.entries(value)
+    .filter(([key])=>!/(^id$|created|photo|emergency|password|secret|token)/i.test(key))
+    .map(([key,v])=>searchRecordText(v,depth+1)).join(" ");
+}
+function searchRimbook(raw) {
+  const box=$("#searchResults");
+  if(!box)return;
+  const query=normalizeSearchText(raw);
+  if(query.length<2){box.innerHTML="";box.hidden=true;return;}
+  const results=[];
+  const add=(kind,id,title,subtitle,record,route)=>{
+    const hay=normalizeSearchText(searchRecordText(record));
+    if(hay.includes(query))results.push({kind,id,title,subtitle,route});
+  };
+  (RB.data.projects||[]).forEach(p=>add("project",p.id,p.name||"مشروع","مشروع",p,"projects"));
+  (RB.data.items||[]).forEach(x=>{
+    const type=x.type||"سجل";
+    const labels={task:"مهمة",note:"ملاحظة",work:"سجل عمل",voice_log:"تسجيل صوتي",appointment:"موعد",reminder:"تذكير"};
+    const route=type==="task"?"tasks":(["work","voice_log"].includes(type)?"voice":"home");
+    const title=x.title||x.name||x.ds||x.body||labels[type]||"سجل";
+    const subtitle=[labels[type]||type,x.d||x.date||""].filter(Boolean).join(" · ");
+    add(type,x.id,title,subtitle,x,route);
+  });
+  (RB.data.contacts||[]).forEach(c=>add("contact",c.id,c.name||"جهة اتصال",[c.company,c.phone].filter(Boolean).join(" · "),c,"contacts"));
+  (RB.data.invoices||[]).forEach(inv=>add("invoice",inv.id,"فاتورة #"+(inv.number||""),[inv.client,inv.date].filter(Boolean).join(" · "),inv,"projects"));
+  const shown=results.slice(0,20);
+  box.innerHTML=shown.length
+    ? '<div class="search-heading">نتائج البحث ('+results.length+')</div>'+shown.map(r=>'<button type="button" class="search-hit" onclick="openSearchResult(\''+r.route+'\',\''+encodeURIComponent(String(r.id||""))+'\')"><b>'+esc(r.title)+'</b><small>'+esc(r.subtitle||r.kind)+'</small></button>').join("")+(results.length>20?'<p class="muted">أظهرنا أول 20 نتيجة. أضف كلمات أدق لتضييق البحث.</p>':"")
+    : '<p class="search-empty">لا توجد نتائج مطابقة. جرّب اسماً أو كلمة أخرى.</p>';
+  box.hidden=false;
+}
+function openSearchResult(route,encodedId) {
+  const id=decodeURIComponent(encodedId||"");
+  const box=$("#searchResults"),input=$("#quickSearch");
+  if(box){box.innerHTML="";box.hidden=true;}
+  if(input)input.value="";
+  if(route==="contacts"&&typeof contactsScreen==="function"){VIEWS.contacts=contactsScreen;go("contacts");return;}
+  if(route==="voice"&&typeof VIEWS.voice==="function"){go("voice");return;}
+  if(VIEWS[route]){go(route);return;}
+  toast("عثرنا على السجل، لكن شاشة عرضه التفصيلية غير متاحة بعد.");
+}
+function searchRimbookKey(event) {
+  if(event.key==="Escape"){const box=$("#searchResults");if(box){box.hidden=true;box.innerHTML="";}event.target.value="";}
+  if(event.key==="Enter"){const first=$("#searchResults .search-hit");if(first)first.click();}
+}
 function render(){
   const d = RB.data;
   document.body.dataset.theme = d.settings.theme;
@@ -171,7 +227,10 @@ const VIEWS = {};
 
 VIEWS.home = () => {
   const tasks = RB.all("task"), open = tasks.filter(x=>!x.done);
-  return `<div class=card><h2>أهلاً بك 👋</h2><p class=muted>${new Date().toLocaleDateString("ar")}</p></div>
+  const p=RB.data.profile||{};
+  const avatar=p.photo?'<img src="'+esc(p.photo)+'" alt="الصورة الشخصية">':'<span aria-hidden="true">👤</span>';
+  const name=p.name?esc(p.name):"ملفي الشخصي";
+  return `<div class="card home-welcome"><button type="button" class="home-profile" onclick="go('profile')" aria-label="فتح الملف الشخصي">${avatar}<span><b>${name}</b><small>${p.name?"الملف الشخصي والإعدادات الشخصية":"أضف اسمك وصورتك وبياناتك"}</small></span><strong>›</strong></button><h2>أهلاً بك ${p.name?esc(p.name):""} 👋</h2><p class=muted>${new Date().toLocaleDateString("ar")}</p><div class="row"><button type="button" onclick="go('profile')">👤 ملفي الشخصي</button><button type="button" onclick="go('settings')">⚙️ إعدادات المفكرة</button></div></div>
   <div class="grid3">
     <div class=card><small class=muted>مهام مفتوحة</small><h3>${open.length}</h3></div>
     <div class=card><small class=muted>المشاريع</small><h3>${RB.data.projects.length}</h3></div>
