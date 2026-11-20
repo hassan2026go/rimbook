@@ -66,6 +66,8 @@ assert.match(activation, /ماذا تريد أن تنجز؟/);
 assert.match(activation, /كم تريد أن تنجز؟/);
 assert.match(activation, /كم أنجزت حتى الآن؟/);
 assert.match(activation, /حفظ الإنجاز/);
+assert.ok(activation.includes("toggleGoalCustomUnit(this.value)"));
+assert.ok(activation.includes("gcustomunit-label"));
 assert.match(activation, /عام.*غير مرتبط بمشروع/);
 assert.match(activation, /saveProfilePhoto\(this\)/);
 assert.match(activation, /saveProfileField\(/);
