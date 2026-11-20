@@ -129,9 +129,9 @@ async function requestRimbookPersistence() {
 function go(t){ view = t; render(); window.scrollTo(0,0); }
 function normalizeSearchText(value) {
   return String(value ?? "").toLocaleLowerCase("ar")
-    .normalize("NFD").replace(/[\\u064B-\\u065F\\u0670]/g, "")
+    .normalize("NFD").replace(/[\u064B-\u065F\u0670]/g, "")
     .replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه")
-    .replace(/[\\u0640]/g, "").replace(/\\s+/g, " ").trim();
+    .replace(/\u0640/g, "").replace(/\s+/g, " ").trim();
 }
 function searchRecordText(value, depth=0) {
   if (depth > 2 || value == null) return "";
@@ -155,14 +155,17 @@ function searchRimbook(raw) {
   (RB.data.projects||[]).forEach(p=>add("project",p.id,p.name||"مشروع","مشروع",p,"projects"));
   (RB.data.items||[]).forEach(x=>{
     const type=x.type||"سجل";
-    const labels={task:"مهمة",note:"ملاحظة",work:"سجل عمل",voice_log:"تسجيل صوتي",appointment:"موعد",reminder:"تذكير"};
-    const route=type==="task"?"tasks":(["work","voice_log"].includes(type)?"voice":"home");
+    const labels={task:"مهمة",event:"موعد",appointment:"موعد",note:"ملاحظة",work:"سجل عمل",voice_log:"تسجيل صوتي",reminder:"تذكير"};
+    const routes={task:"tasks",event:"agenda",appointment:"agenda",reminder:"agenda",note:"notes",work:"voice",voice_log:"voice"};
+    const route=routes[type]||"home";
     const title=x.title||x.name||x.ds||x.body||labels[type]||"سجل";
     const subtitle=[labels[type]||type,x.d||x.date||""].filter(Boolean).join(" · ");
     add(type,x.id,title,subtitle,x,route);
   });
   (RB.data.contacts||[]).forEach(c=>add("contact",c.id,c.name||"جهة اتصال",[c.company,c.phone].filter(Boolean).join(" · "),c,"contacts"));
-  (RB.data.invoices||[]).forEach(inv=>add("invoice",inv.id,"فاتورة #"+(inv.number||""),[inv.client,inv.date].filter(Boolean).join(" · "),inv,"projects"));
+  (RB.data.goals||[]).forEach(g=>add("goal",g.id,g.name||"هدف","هدف",g,"goals"));
+  (RB.data.habits||[]).forEach(h=>add("habit",h.id,h.name||"عادة","عادة",h,"habits"));
+  (RB.data.invoices||[]).forEach(inv=>add("invoice",inv.id,"فاتورة #"+(inv.number||""),[inv.client,inv.date].filter(Boolean).join(" · "),inv,"invoices"));
   const shown=results.slice(0,20);
   box.innerHTML=shown.length
     ? '<div class="search-heading">نتائج البحث ('+results.length+')</div>'+shown.map(r=>'<button type="button" class="search-hit" onclick="openSearchResult(\''+r.kind+'\',\''+r.route+'\',\''+encodeURIComponent(String(r.id||""))+'\')"><b>'+esc(r.title)+'</b><small>'+esc(r.subtitle||r.kind)+'</small></button>').join("")+(results.length>20?'<p class="muted">أظهرنا أول 20 نتيجة. أضف كلمات أدق لتضييق البحث.</p>':"")
@@ -178,6 +181,8 @@ function openSearchResult(kind,route,encodedId) {
   if(kind==="project")record=(RB.data.projects||[]).find(x=>String(x.id)===id);
   else if(kind==="contact")record=(RB.data.contacts||[]).find(x=>String(x.id)===id);
   else if(kind==="invoice")record=(RB.data.invoices||[]).find(x=>String(x.id)===id);
+  else if(kind==="goal")record=(RB.data.goals||[]).find(x=>String(x.id)===id);
+  else if(kind==="habit")record=(RB.data.habits||[]).find(x=>String(x.id)===id);
   else record=(RB.data.items||[]).find(x=>String(x.id)===id);
   if(!record)return toast("لم نعثر على السجل؛ ربما تم تغييره أو حذفه.");
   const labels={name:"الاسم",title:"العنوان",body:"التفاصيل",d:"التاريخ",date:"التاريخ",ds:"البيان",k:"نوع الحركة",due:"المستحق",rec:"الدفعة",advance:"السلفة",expense:"المصروف",otHours:"الساعات الإضافية",normalHours:"الساعات العادية",phone:"الهاتف",email:"البريد الإلكتروني",company:"الشركة",address:"العنوان",notes:"ملاحظات",number:"رقم الفاتورة",client:"العميل",paid:"حالة الدفع",budget:"الميزانية"};
