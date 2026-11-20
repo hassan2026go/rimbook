@@ -169,15 +169,31 @@ function searchRimbook(raw) {
     : '<p class="search-empty">لا توجد نتائج مطابقة. جرّب اسماً أو كلمة أخرى.</p>';
   box.hidden=false;
 }
-function openSearchResult(route,encodedId) {
+function openSearchResult(kind,route,encodedId) {
   const id=decodeURIComponent(encodedId||"");
   const box=$("#searchResults"),input=$("#quickSearch");
   if(box){box.innerHTML="";box.hidden=true;}
   if(input)input.value="";
-  if(route==="contacts"&&typeof contactsScreen==="function"){VIEWS.contacts=contactsScreen;go("contacts");return;}
-  if(route==="voice"&&typeof VIEWS.voice==="function"){go("voice");return;}
-  if(VIEWS[route]){go(route);return;}
-  toast("عثرنا على السجل، لكن شاشة عرضه التفصيلية غير متاحة بعد.");
+  let record=null;
+  if(kind==="project")record=(RB.data.projects||[]).find(x=>String(x.id)===id);
+  else if(kind==="contact")record=(RB.data.contacts||[]).find(x=>String(x.id)===id);
+  else if(kind==="invoice")record=(RB.data.invoices||[]).find(x=>String(x.id)===id);
+  else record=(RB.data.items||[]).find(x=>String(x.id)===id);
+  if(!record)return toast("لم نعثر على السجل؛ ربما تم تغييره أو حذفه.");
+  const labels={name:"الاسم",title:"العنوان",body:"التفاصيل",d:"التاريخ",date:"التاريخ",ds:"البيان",k:"نوع الحركة",due:"المستحق",rec:"الدفعة",advance:"السلفة",expense:"المصروف",otHours:"الساعات الإضافية",normalHours:"الساعات العادية",phone:"الهاتف",email:"البريد الإلكتروني",company:"الشركة",address:"العنوان",notes:"ملاحظات",number:"رقم الفاتورة",client:"العميل",paid:"حالة الدفع",budget:"الميزانية"};
+  const rows=Object.entries(record).filter(([key,value])=>!/(^id$|created|photo|emergency|password|secret|token)/i.test(key)&&value!==""&&value!=null&&["string","number","boolean"].includes(typeof value)).map(([key,value])=>'<div class="item"><span>'+esc(labels[key]||key)+'</span><b>'+esc(typeof value==="boolean"?(value?"نعم":"لا"):value)+'</b></div>').join("");
+  const title=record.name||record.title||record.ds||(kind==="invoice"?"فاتورة":"تفاصيل السجل");
+  const dialog=document.createElement("div");
+  dialog.id="searchRecordDialog";
+  dialog.setAttribute("role","dialog");dialog.setAttribute("aria-modal","true");dialog.setAttribute("aria-label","تفاصيل نتيجة البحث");
+  dialog.style.cssText="position:fixed;inset:0;z-index:120;background:#000a;display:flex;align-items:center;justify-content:center;padding:16px";
+  dialog.innerHTML='<div class="card" style="width:min(100%,420px);max-height:80vh;overflow:auto;margin:0;background:var(--card)"><div class="row" style="justify-content:space-between"><b>'+esc(title)+'</b><button type="button" onclick="document.getElementById(\'searchRecordDialog\')?.remove()">إغلاق ✕</button></div>'+rows+'<div class="row" style="margin-top:12px"><button class="p" type="button" onclick="document.getElementById(\'searchRecordDialog\')?.remove();openSearchSection(\''+route+'\')">فتح القسم</button></div></div>';
+  document.body.append(dialog);
+}
+function openSearchSection(route) {
+  if(route==="contacts"&&typeof contactsScreen==="function")VIEWS.contacts=contactsScreen;
+  if(VIEWS[route])go(route);
+  else go("home");
 }
 function searchRimbookKey(event) {
   if(event.key==="Escape"){const box=$("#searchResults");if(box){box.hidden=true;box.innerHTML="";}event.target.value="";}
