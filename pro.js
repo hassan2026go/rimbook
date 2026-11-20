@@ -24,10 +24,6 @@ window.proAddTask=function(){
  if(!row)return;
  render();toast("أضيفت المهمة");
 };
- const title=$("ptitle")?.value.trim(); if(!title)return toast("اكتب عنوان المهمة");
- RB.add({type:"task",title,due:$("pdue")?.value||"",priority:$("ppriority")?.value||"normal",project:$("pproject")?.value||D.activeProject||null,done:false,created:Date.now()});
- render();toast("أضيفت المهمة");
-};
 window.proSetTaskFilter=function(f){window.proTaskFilter=f;render();};
 window.proToggleTask=function(id,done){RB.patch(id,{done});render();};
 window.proAddProject=function(){
@@ -35,10 +31,6 @@ window.proAddProject=function(){
  const p={id:"p"+Date.now().toString(36),name,color:"#22d3ee",budget:Number($("ppbudget")?.value)||0,due:$("ppdue")?.value||"",status:"active",createdAt:Date.now()};
  if(!RB.transact(data=>{data.projects.push(p);data.activeProject=p.id;}))return;
  render();toast("تم إنشاء المشروع");
-};
- const name=$("ppname")?.value.trim();if(!name)return toast("اكتب اسم المشروع");
- const p={id:"p"+Date.now().toString(36),name,color:"#22d3ee",budget:Number($("ppbudget")?.value)||0,due:$("ppdue")?.value||"",status:"active",createdAt:Date.now()};
- D.projects.push(p);D.activeProject=p.id;RB.save();render();toast("تم إنشاء المشروع");
 };
 window.proFilterTaskRows=function(){
  const q=($("proTaskSearch")?.value||"").trim().toLocaleLowerCase();
