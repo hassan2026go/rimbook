@@ -1,7 +1,7 @@
 /* rimbook business.js - الفواتير والعملات والجهات والمرفقات */
 
 /* ==================== 1) تعدد العملات ==================== */
-const CURRENCIES = {
+const BIZ_CURRENCIES = {
   USD: { symbol: "$", name: "دولار أمريكي", rate: 1 },
   EUR: { symbol: "€", name: "يورو", rate: 0.92 },
   TRY: { symbol: "₺", name: "ليرة تركية", rate: 34.5 },
@@ -12,7 +12,7 @@ const CURRENCIES = {
   EGP: { symbol: "ج.م", name: "جنيه مصري", rate: 48.5 }
 };
 
-let exchangeRates = { ...Object.fromEntries(Object.entries(CURRENCIES).map(([k,v])=>[k, v.rate])) };
+let exchangeRates = { ...Object.fromEntries(Object.entries(BIZ_CURRENCIES).map(([k,v])=>[k, v.rate])) };
 let ratesLastUpdate = 0;
 
 /* تحديث أسعار الصرف من API مجاني (يحتاج إنترنت، اختياري) */
@@ -36,7 +36,7 @@ function convertCurrency(amount, from, to){
 }
 
 function formatMoney(amount, currency){
-  const c = CURRENCIES[currency] || { symbol: currency };
+  const c = BIZ_CURRENCIES[currency] || { symbol: currency };
   return `${amount.toFixed(2)} ${c.symbol}`;
 }
 
@@ -81,7 +81,7 @@ function generateInvoice(projectId){
   const contact = proj.contactId ? (RB.data.contacts||[]).find(c=>c.id===proj.contactId) : null;
   const invNum = "INV-" + Date.now().toString(36).toUpperCase().slice(-6);
   const currency = proj.currency || RB.data.settings.currency || "USD";
-  const sym = (CURRENCIES[currency] || {symbol:currency}).symbol;
+  const sym = (BIZ_CURRENCIES[currency] || {symbol:currency}).symbol;
 
   const html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8">
   <title>فاتورة ${invNum}</title>
