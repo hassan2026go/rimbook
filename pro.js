@@ -20,7 +20,7 @@ window.proAddTask=function(){
  const title=$("ptitle")?.value.trim(); if(!title)return toast("اكتب عنوان المهمة");
  const projectSelect=$("pproject");
  const project=projectSelect?(projectSelect.value||null):(D.activeProject||null);
- const row=RB.add({type:"task",title,due:$("pdue")?.value||"",priority:$("ppriority")?.value||"normal",project,workerId:$("#ptworker")?.value||null,done:false,created:Date.now()});
+ const row=RB.add({type:"task",title,due:$("pdue")?.value||"",priority:$("ppriority")?.value||"normal",project,workerId:$("ptworker")?.value||null,done:false,created:Date.now()});
  if(!row)return;
  render();toast("أضيفت المهمة");
 };
