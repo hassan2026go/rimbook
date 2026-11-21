@@ -49,6 +49,20 @@
     render();
   };
 
+  window.notebookEdit = function (id) {
+    const row = RB.data.items.find(x => String(x.id) === String(id) && x.type === "event");
+    if (!row) return;
+    const title = prompt("عنوان الموعد أو التذكير", row.title || "");
+    if (title === null) return;
+    const date = prompt("التاريخ بصيغة YYYY-MM-DD", row.d || today());
+    if (date === null) return;
+    const time = prompt("الوقت بصيغة HH:MM", row.t || "09:00");
+    if (time === null) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return toast("تحقق من صيغة التاريخ والوقت");
+    if (!RB.patch(id, { title: title.trim(), d: date, t: time })) return;
+    render(); toast("تم تعديل السجل");
+  };
+
   window.notebookDelete = function (id) {
     const row = RB.data.items.find(x => String(x.id) === String(id));
     if (!row || !["note", "event"].includes(row.type)) return;
@@ -95,8 +109,10 @@
       return '<div class="item" style="display:block;padding:10px 0"><div class="row" style="justify-content:space-between"><b>' +
         safe(x.title || label) + '</b><span class="tag">' + label + '</span></div><small class="muted">' +
         safe(x.d || "") + ' · ' + safe((projects().find(p => p.id === x.project) || {}).name || "عام") +
-        '</small>' + details + '<button class="danger" type="button" onclick="notebookDelete(\'' +
-        safe(x.id) + '\')">حذف</button></div>';
+        '</small>' + details + '<div class="row">' +
+        (isNote ? '<button type="button" onclick="editNote(\\'' + safe(x.id) + '\\')">تعديل</button>' :
+          '<button type="button" onclick="notebookEdit(\\'' + safe(x.id) + '\\')">تعديل</button>') +
+        '<button class="danger" type="button" onclick="notebookDelete(\\'' + safe(x.id) + '\\')">حذف</button></div></div>'
     }).join("");
     return '<div class="card"><b style="font-size:17px">📒 المفكرة والسجل اليومي</b>' +
       '<p class="muted">مكان واحد للملاحظات والمواعيد والتذكيرات والمرفقات، مع ربط السجلات بالمشاريع عند الحاجة.</p>' +
