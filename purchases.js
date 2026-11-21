@@ -35,6 +35,16 @@
   const paid = p => purchaseAccounting(p).paid;
   const refunded = p => purchaseAccounting(p).refunded;
   const remaining = p => purchaseAccounting(p).remaining;
+
+  function appendPurchaseRefund(p,amount,date,id) {
+    const paidCents=(p.payments||[]).reduce((sum,x)=>sum+cents(x.amount),0);
+    const refundedCents=(p.refunds||[]).reduce((sum,x)=>sum+cents(x.amount),0);
+    const refundCents=cents(amount);
+    if(!Number.isFinite(Number(amount))||Number(amount)<0||refundCents>Math.max(0,paidCents-refundedCents))return false;
+    if(!Array.isArray(p.refunds))p.refunds=[];
+    if(refundCents>0)p.refunds.push({id,date,amount:refundCents/100,note:"استرداد عند الإلغاء"});
+    return true;
+  }
   const netCost = p => purchaseAccounting(p).netCost;
 
   window.rimbookProjectPurchasesTotal = id => purchases().filter(p=>String(p.projectId||"")===String(id)).reduce((sum,p)=>sum+netCost(p),0);
@@ -87,15 +97,20 @@
     const reason=prompt("سبب إلغاء الشراء (إلزامي):","");
     if(reason===null)return;
     if(reason.trim().length<3)return toast("اكتب سبب الإلغاء بوضوح");
-    const paidAmount=paid(row);
-    const raw=prompt("المبلغ المسترد من المورد (إن وجد)، المدفوع سابقاً "+paidAmount.toFixed(2),String(paidAmount));
+    const refundable=Math.max(0,paid(row)-refunded(row));
+    const raw=prompt("المبلغ المسترد الآن (إن وجد)، الحد المتبقي القابل للاسترداد "+refundable.toFixed(2),String(refundable));
     if(raw===null)return;
     const refund=parseAmount(raw);
-    if(!Number.isFinite(refund)||refund<0||refund>paidAmount)return toast("تحقق من مبلغ الاسترداد");
-    if(!RB.transact(data=>{
+    if(!Number.isFinite(refund)||refund<0||refund>refundable)return toast("مبلغ الاسترداد يتجاوز المبلغ المدفوع غير المسترد");
+    let applied=false;
+    const ok=RB.transact(data=>{
       const p=data.purchases.find(x=>String(x.id)===String(id));
-      if(p){p.status="cancelled";p.cancelledAt=Date.now();p.cancellationReason=reason.trim();p.refunds=refund>0?[{id:"ref_"+Date.now().toString(36),date:today(),amount:refund,note:"استرداد عند الإلغاء"}]:(p.refunds||[]);}
-    }))return;
+      if(!p||p.status==="cancelled")return;
+      if(!appendPurchaseRefund(p,refund,today(),"ref_"+Date.now().toString(36)))return;
+      p.status="cancelled";p.cancelledAt=Date.now();p.cancellationReason=reason.trim();
+      applied=true;
+    });
+    if(!ok||!applied)return toast("تغير سجل الشراء قبل الحفظ؛ راجع السجل وحاول مجدداً");
     render();toast("تم إلغاء عملية الشراء مع الاحتفاظ بسجلها وتسويتها");
   };
 
