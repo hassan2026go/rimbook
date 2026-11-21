@@ -260,6 +260,17 @@
       (typeof langPicker === "function" ? langPicker() : "");
   };
 
+  const managerTasksView = VIEWS.tasks;
+  VIEWS.tasks = function () {
+    if (RB.data.profile.role !== "worker") return managerTasksView();
+    const workerId = RB.data.profile.workerId;
+    if (!workerId) return '<div class="card"><b>مهامي</b><p class="muted">اربط ملف العامل من الملف الشخصي حتى تظهر المهام المسندة إليك.</p><button class="p" onclick="go(\\'profile\\')">ربط ملف العامل</button></div>';
+    const rows = RB.all("task").filter(task => String(task.workerId || "") === String(workerId))
+      .sort((a,b)=>(a.done-b.done)||String(a.due||"9999").localeCompare(String(b.due||"9999")));
+    return '<div class="card"><b>📋 مهامي المسندة</b><p class="muted">تظهر هنا المهام المسندة إلى ملفك فقط. يمكنك تحديث حالة الإنجاز.</p>' +
+      (rows.map(task => '<div class="item"><input type="checkbox" '+(task.done?"checked":"")+' onchange="proToggleTask('+JSON.stringify(task.id)+',this.checked)"><span><b>'+safe(task.title)+'</b><br><small class="muted">'+safe(task.due||"بلا موعد")+' · '+safe(projectName(task.project))+'</small></span><span class="tag">'+(task.done?"منجزة":"مفتوحة")+'</span></div>').join("") || '<p class="muted">لا توجد مهام مسندة إليك حالياً.</p>') +
+      '</div>';
+  };
   TABS.workers=["👷","العمال"];
   TABS.workday=["📅","اليومية"];
   TABS.payroll=["💰","الأجور"];
