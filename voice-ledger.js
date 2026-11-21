@@ -118,8 +118,10 @@ window.voiceLedgerListen=function(text){if(typeof speakText==="function")speakTe
 window.voiceLedgerDelete=function(id){
   const row=RB.data.items.find(item=>String(item.id)===String(id));if(!row)return toast("لم نعثر على السجل");
   if(row.type==="work")return toast("هذا قيد مالي. لا نحذفه مباشرة؛ صححه بقيد عكسي موثق حفاظاً على الحقوق.");
-  if(!confirm("حذف نص التسجيل الصوتي؟ لن يؤثر ذلك في أي حركة مالية."))return;
+  if(!confirm("حذف سجل الصوت ومرفقاته؟ لن يؤثر ذلك في أي حركة مالية."))return;
+  const attachments=(row.attachments||[]).slice();
   if(!RB.remove(id))return;
+  if(typeof ATT_DB!=="undefined")attachments.forEach(att=>ATT_DB.del(att.aid).catch(()=>{}));
   render();
 };
 window.applyWorkReversal=applyWorkReversal;
