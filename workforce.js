@@ -247,7 +247,18 @@
       '<button class="p" onclick="rimbookSavePayrollSettings()">حفظ سياسة دورة الأجور</button></div>';
   };
   const oldSettings = VIEWS.settings;
-  VIEWS.settings = function () { let html=oldSettings(); if(RB.data.profile.role==="worker"){html=html.replace(/<div class=card><b>💼 سياسة الأجور والحسابات<\\/b>[\\s\\S]*?<\\/div>/,"");} return html + (RB.data.profile.role==="worker" ? "" : window.rimbookWorkforceSettings()) + (typeof langPicker === "function" ? langPicker() : ""); };
+  VIEWS.settings = function () {
+    let html = oldSettings();
+    if (RB.data.profile.role === "worker") {
+      const start = html.indexOf('<div class=card><b>💼 سياسة الأجور والحسابات</b>');
+      if (start >= 0) {
+        const end = html.indexOf("</div>", start);
+        if (end >= 0) html = html.slice(0, start) + html.slice(end + 6);
+      }
+    }
+    return html + (RB.data.profile.role === "worker" ? "" : window.rimbookWorkforceSettings()) +
+      (typeof langPicker === "function" ? langPicker() : "");
+  };
 
   TABS.workers=["👷","العمال"];
   TABS.workday=["📅","اليومية"];
