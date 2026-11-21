@@ -258,6 +258,7 @@ assert.ok(pro.includes("profile.workerId") && voiceLedger.includes("workerId=wor
 assert.ok(purchases.includes("VIEWS.purchases") && purchases.includes("addRimbookPurchase"), "purchases and materials must have a real management screen");
 assert.ok(purchases.includes("addPurchasePayment") && purchases.includes("cancelRimbookPurchase"), "supplier payments and cancellations must be recorded rather than deleting purchases");
 assert.ok(purchases.includes("window.rimbookProjectPurchasesTotal"), "purchases must roll up into project costs");
+assert.ok(purchases.includes("window.rimbookPurchaseAccounting = purchaseAccounting") && pro.includes("window.rimbookPurchaseAccounting(p).remaining"), "dashboard purchase balances must reuse the same integer-cent accounting as the purchase ledger");
 assert.ok(app.includes('target.type === "work"') && app.includes("لا يمكن حذف حركة عمل أو حساب"), "financial work records must be protected from hard deletion");
 assert.ok(activation.includes('row.status="archived"') && activation.includes("archivedAt=Date.now()"), "project archival must preserve linked records in the active override");
 assert.ok(!activation.includes("data.projects=data.projects.filter(p=>p.id!==id)"), "archiving must not hard-delete projects");
