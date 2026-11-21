@@ -47,6 +47,7 @@ function parseSpoken(raw){
  if(D.profile?.role==="worker"&&!profileWorker)return {error:"اربط ملف العامل من صفحة الملف الشخصي أولاً."};
  const workerMatch=matches[0]||profileWorker;
  const workerId=workerMatch?.id||null,person=workerMatch?.name||"";
+ const spokenDailyRate=workerMatch&&window.rimbookWorkerDailyRate?window.rimbookWorkerDailyRate(workerMatch.id):(Number(D.settings.dailyRate)||0);
  const out=[];
  if(hasHoliday) out.push({k:"holiday",d:date,ds:"عطلة",due:spokenDailyRate*(Math.min(100,Math.max(0,Number(D.settings.holidayPayPercent)||0))/100),rec:0,ot:0,project,workerId,person});
  else if(hasWork) out.push({k:"work",d:date,ds:"يوم عمل",due:spokenDailyRate,rec:0,ot:0,project,workerId,person});
