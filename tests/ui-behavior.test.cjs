@@ -228,7 +228,7 @@ assert.ok(backup.includes("ATT_DB.get") && backup.includes("ATT_DB.put"), "full 
 assert.ok(backup.includes("function validateFullBackupPayload(payload)") &&
   backup.includes("payload.version > VERSION") &&
   backup.includes("seen.has(item.aid)") &&
-  backup.includes("Number(item.size) !== blob.size"),
+  backup.includes("item.size !== blob.size"),
   "full backup restore must validate version, duplicate attachment IDs and exact attachment sizes before writing");
 assert.ok(backup.includes("const previous = new Map()") &&
   backup.includes("const written = []") &&
