@@ -280,5 +280,7 @@ assert.ok(workforce.includes("window.rimbookCalculateWorkerPay = calculateWorker
 assert.ok(workforce.includes("const duplicate=workRows(worker.id)"), "a worker must not receive duplicate attendance for the same date");
 assert.ok(voiceLedger.includes("window.rimbookCalculateWorkerPay"), "voice and quick entries must calculate worker wages using the shared payroll policy");
 assert.ok(voiceLedger.includes("item.workerDue=pay.workerDue"), "quick worker entries must store the same calculated due as daily attendance");
+assert.ok(voiceLedger.includes("duplicateAttendance=entries.find"), "voice confirmation must reject duplicate worker attendance");
+assert.ok(voiceLedger.includes('row.d===today()&&["work","holiday","absence"].includes(row.k)'), "quick worker entries must reject duplicate attendance for today");
 
 console.log("UI behavior tests passed.");
