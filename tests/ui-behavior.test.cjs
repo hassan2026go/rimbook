@@ -250,4 +250,21 @@ assert.ok(pro.includes('id="ptworker"') && workforce.includes("VIEWS.tasks = fun
 assert.ok(pro.includes("purchasesCost") && pro.includes("supplierBalance"), "project and financial reports must include purchases and supplier balances");
 assert.ok(workforce.includes('["purchases","المشتريات والمواد"') && workforce.includes('ROLES.worker.tabs=["home","voice","notebook","more"]'), "main navigation must group secondary functions and keep worker access personal");
 
+
+const calculateWorkerPay = extractFunction(workforce, "calculateWorkerPay");
+{
+  const fullDay = calculateWorkerPay("work", 100, 8, 0, 8, 2, 15, true, 50);
+  assert.deepEqual({...fullDay}, {base:100, overtimePay:30, workerDue:130}, "full day plus two overtime hours");
+  const lateDay = calculateWorkerPay("work", 100, 8, 2, 8, 2, 15, true, 50);
+  assert.deepEqual({...lateDay}, {base:75, overtimePay:30, workerDue:105}, "late hours reduce base accrual");
+  const holiday = calculateWorkerPay("holiday", 100, 8, 0, 8, 2, 15, true, 50);
+  assert.deepEqual({...holiday}, {base:50, overtimePay:0, workerDue:50}, "holiday must never receive work overtime pay");
+  const absence = calculateWorkerPay("absence", 100, 8, 0, 8, 2, 15, true, 50);
+  assert.deepEqual({...absence}, {base:0, overtimePay:0, workerDue:0}, "absence must not accrue base or overtime");
+  const disabled = calculateWorkerPay("work", 100, 8, 0, 8, 2, 15, false, 50);
+  assert.deepEqual({...disabled}, {base:100, overtimePay:0, workerDue:100}, "disabled overtime must record no overtime pay");
+}
+assert.ok(workforce.includes("normalHours > planned"), "normal hours cannot exceed configured standard hours");
+assert.ok(workforce.includes("!x.reversedBy).length"), "reversed holidays and absences must not remain counted");
+
 console.log("UI behavior tests passed.");
