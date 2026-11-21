@@ -40,6 +40,10 @@
     if (worker.wageType === "monthly") return rate / Math.max(1, Number(RB.data.settings.payrollDaysPerMonth) || 26);
     return rate;
   }
+  window.rimbookWorkerDailyRate = function (id) {
+    const worker = workers().find(w => String(w.id) === String(id));
+    return worker ? workerDailyRate(worker) : 0;
+  };
   function selectProjects(id) {
     return '<option value="">عام — دون مشروع</option>' + projects().map(p =>
       '<option value="' + safe(p.id) + '" ' + (String(id || "") === String(p.id) ? "selected" : "") + '>' + safe(p.name) + '</option>'
@@ -239,6 +243,7 @@
   TABS.workday=["📅","اليومية"];
   TABS.payroll=["💰","الأجور"];
   ROLES.employee.tabs.splice(Math.max(0,ROLES.employee.tabs.indexOf("projects")+1),0,"workers","workday","payroll");
+  ROLES.worker.tabs = ROLES.worker.tabs.filter(tab => tab !== "ledger");
   VIEWS.workers = VIEWS.workers;
   render();
 })();
