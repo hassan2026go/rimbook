@@ -87,13 +87,24 @@ window.voiceLedgerCancel=function(){pending=null;render();};
 function voiceLedgerSaveQuick(kind,amount,workDetails){
  const labels={work:"يوم عمل",holiday:"عطلة",payment:"دفعة مستلمة",advance:"سلفة للعامل",expense:"مصروف"};
  if(!labels[kind])return;
+ const worker=D.profile?.role==="worker"?(D.workers||[]).find(w=>String(w.id)===String(D.profile.workerId||"")&&w.active!==false):null;
+ if(D.profile?.role==="worker"&&!worker)return toast("اربط ملف العامل من صفحة الملف الشخصي أولاً"),false;
  const otHours=kind==="work"?Math.max(0,Number(workDetails?.otHours)||0):0;
  const normalHours=kind==="work"?Math.max(0,Number(workDetails?.normalHours)||Number(D.settings.normalHoursPerDay)||8):0;
  const overtimeEnabled=!!D.settings.overtimeEnabled;
- const otRate=Math.max(0,Number(D.settings.otRate)||0);
+ const otRate=worker&&worker.overtimeRate!=null?Math.max(0,Number(worker.overtimeRate)||0):Math.max(0,Number(D.settings.otRate)||0);
  const overtimePay=kind==="work"&&overtimeEnabled?otHours*otRate:0;
  const item={k:kind,d:today(),ds:labels[kind],due:kind==="work"?(Number(D.settings.dailyRate)||0)+overtimePay:kind==="holiday"?(Number(D.settings.dailyRate)||0)*(Math.min(100,Math.max(0,Number(D.settings.holidayPayPercent)||0))/100):0,rec:kind==="payment"?amount:0,advance:kind==="advance"?amount:0,expense:kind==="expense"?amount:0,project:D.activeProject||null};
  if(kind==="work"){item.normalHours=normalHours;item.otHours=otHours;item.overtimePay=overtimePay;item.overtimeRate=otRate;}
+ if(worker){
+  const daily=window.rimbookWorkerDailyRate?window.rimbookWorkerDailyRate(worker.id):(Number(D.settings.dailyRate)||0);
+  const planned=Number(D.settings.normalHoursPerDay)||8;
+  item.workerId=worker.id;item.person=worker.name;
+  item.workerDue=kind==="work"?daily*Math.max(0,normalHours)/planned+overtimePay:kind==="holiday"?daily*(Math.min(100,Math.max(0,Number(D.settings.holidayPayPercent)||0))/100):0;
+  item.workerPaid=kind==="payment"?Number(amount)||0:0;
+  item.workerAdvance=kind==="advance"?Number(amount)||0:0;
+  item.due=0;item.rec=0;item.advance=0;
+ }
  const saved=RB.add({type:"work",...item,voice:false,created:Date.now()});
  if(!saved)return false;
  render();toast("تم تسجيل "+labels[kind]+(otHours?" مع "+otHours+" ساعة إضافية":""));
