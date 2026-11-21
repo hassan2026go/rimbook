@@ -172,6 +172,12 @@ assert.ok(voiceLedger.includes("راجع ما فهمه التطبيق قبل ا�
         { k: "payment", d: "2026-11-21", rec: 10 }
       ] },
       window: {},
+      D: {
+        profile: { role: "owner", workerId: null },
+        settings: { dailyRate: 50, holidayPayPercent: 0, normalHoursPerDay: 8, overtimeEnabled: false, otRate: 0 },
+        workers: [],
+        items: []
+      },
       RB: { transact(mutator) { if (!saveOk) return false; mutator(data); return true; } },
       render() { rendered++; },
       toast(message) { messages.push(message); },
