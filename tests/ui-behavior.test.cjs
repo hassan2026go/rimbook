@@ -14,6 +14,7 @@ const push = fs.readFileSync("push.js", "utf8");
 const backup = fs.readFileSync("backup.js", "utf8");
 const sync = fs.readFileSync("sync.js", "utf8");
 const purchases = fs.readFileSync("purchases.js", "utf8");
+const invoiceCode = fs.readFileSync("invoices.js", "utf8");
 
 const reversalMatch = voiceLedger.match(/function applyWorkReversal\(data,id,reason,now,newId\)\{[\s\S]*?\n\}/);
 assert.ok(reversalMatch, "financial reversal helper must exist");
@@ -230,6 +231,11 @@ assert.ok(activation.includes("تنزيل نسخة كاملة JSON") && activati
   assert.equal(data.items[1].workerAdvance, -10);
   assert.equal(data.items[1].lateHours, -1);
   assert.equal(data.items[1].workerId, "w1");
+  const invoicePayment = {items:[{type:"work",id:"invoice-pay",k:"payment",invoiceId:"inv-9",invoiceNumber:"0009",rec:25}]};
+  const invoiceResult = applyWorkReversal(invoicePayment,"invoice-pay","تصحيح قبض فاتورة",5678,"invoice-rev");
+  assert.equal(invoiceResult.ok,true);
+  assert.equal(invoicePayment.items[1].invoiceId,"inv-9","invoice payment reversals must remain linked to the original invoice");
+  assert.equal(invoicePayment.items.reduce((sum,row)=>sum+(Number(row.rec)||0),0),0,"reversing an invoice payment must restore its outstanding balance");
 }
 
 
@@ -274,6 +280,18 @@ assert.ok(workforce.includes("normalHours > planned"), "normal hours cannot exce
 assert.ok(workforce.includes("!x.reversedBy).length"), "reversed holidays and absences must not remain counted");
 
 
+const invoiceTotals = extractFunction(invoiceCode, "invoiceTotals", {invoiceCents:value=>Math.round((Number(value)||0)*100)});
+const invoicePaymentSummary = extractFunction(invoiceCode, "invoicePaymentSummary", {
+  RB:{all:()=>[]},
+  invoiceTotals:inv=>invoiceTotals(inv),
+  invoiceCents:value=>Math.round((Number(value)||0)*100)
+});
+{
+  const totals=invoiceTotals({items:[{qty:3,price:0.1},{qty:2,price:0.2}],tax:5,discount:0});
+  assert.deepEqual({...totals},{sub:0.7,tax:0.04,disc:0,total:0.74},"invoice totals must round to cents without floating-point drift");
+  const summary=invoicePaymentSummary({id:"inv-1",items:[{qty:2,price:50}],paid:false});
+  assert.deepEqual({...summary},{total:100,paid:0,remaining:100,status:"unpaid",paymentRows:0});
+}
 const purchaseAccounting = extractFunction(purchases, "purchaseAccounting", {
   cents: value => Math.round((Number(value) || 0) * 100)
 });
