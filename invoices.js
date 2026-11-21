@@ -41,7 +41,7 @@ function customerInvoiceSummary(contact,invoices,contacts){
     partial:summaries.filter(row=>row.status==="partial").length,
     paidInvoices:summaries.filter(row=>row.status==="paid").length
   };
-}
+  }
 window.rimbookCustomerInvoiceSummary=customerInvoiceSummary;
 
 function invoiceNumber(projId){
