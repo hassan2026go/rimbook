@@ -4,7 +4,7 @@ const RB = (() => {
   const def = () => ({
     profile: { name: "", role: "employee", phone: "", email: "", city: "", workplace: "", jobTitle: "", birth: "", emergency: "", skills: "", photo: "", about: "" },
     settings: { theme: "dark", fs: 15, dailyRate: 50, otRate: 10, normalHoursPerDay: 8, holidayPayPercent: 0, overtimeEnabled: false, managerPhone: "", location: "موقع العمل", currency: "$", lang: "ar", enabled: {} },
-    items: [], habits: [], goals: [], projects: [], contacts: [], invoices: [], activeProject: null
+    items: [], habits: [], goals: [], projects: [], workers: [], contacts: [], invoices: [], activeProject: null
   });
   let data;
   try {
