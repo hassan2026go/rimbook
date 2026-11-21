@@ -267,4 +267,13 @@ const calculateWorkerPay = extractFunction(workforce, "calculateWorkerPay");
 assert.ok(workforce.includes("normalHours > planned"), "normal hours cannot exceed configured standard hours");
 assert.ok(workforce.includes("!x.reversedBy).length"), "reversed holidays and absences must not remain counted");
 
+
+const purchaseAccounting = extractFunction(purchases, "purchaseAccounting");
+{
+  const active = purchaseAccounting({total:0.1+0.2,payments:[{amount:0.1},{amount:0.1}],refunds:[],status:"active"});
+  assert.deepEqual({...active}, {paid:0.2, refunded:0, remaining:0.1, netCost:0.3, supplierBalance:0.1}, "supplier balance must use integer cents");
+  const cancelled = purchaseAccounting({total:100,payments:[{amount:60}],refunds:[{amount:20}],status:"cancelled"});
+  assert.deepEqual({...cancelled}, {paid:60, refunded:20, remaining:0, netCost:40, supplierBalance:0}, "cancelled purchase cost must equal paid minus refunded, with no open supplier liability");
+}
+
 console.log("UI behavior tests passed.");
