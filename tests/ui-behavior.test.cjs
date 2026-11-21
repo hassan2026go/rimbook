@@ -424,4 +424,7 @@ assert.ok(attachmentsSource.includes("if(!saved){") && attachmentsSource.include
 assert.ok(attachmentsSource.indexOf("const saved = RB.transact(data =>") < attachmentsSource.indexOf("await ATT_DB.del(aid);\n    render();"), "deleting an attachment must update the record before deleting the stored blob");
 assert.ok(attachmentsSource.includes("t.onabort = () => finishError(t.error)"), "IndexedDB aborts must reject the attachment operation instead of leaving it pending");
 
-console.log("UI behavior tests passed.");
+
+assert.ok(backup.includes("const referenced = new Set()") && backup.includes("seen.size !== referenced.size"), "full restore must reject backups with missing or unreferenced attachment payloads");
+assert.ok(backup.includes("!Number.isSafeInteger(item.size)") && backup.includes("item.size !== blob.size"), "full restore must require exact safe attachment sizes");
+\nconsole.log("UI behavior tests passed.");
