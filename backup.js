@@ -23,7 +23,7 @@
   }
 
   window.collectRimbookBackup = async function () {
-    if (!window.ATT_DB) throw new Error("قاعدة المرفقات غير متاحة");
+    if (typeof ATT_DB === "undefined") throw new Error("قاعدة المرفقات غير متاحة");
     const appData = JSON.parse(JSON.stringify(RB.data));
     const refs = new Map();
     (appData.items || []).forEach(item => (item.attachments || []).forEach(att => {
@@ -51,7 +51,7 @@
       if (!payload.appData || !Array.isArray(payload.appData.items) || !Array.isArray(payload.attachments)) {
         throw new Error("بنية ملف النسخة غير صالحة");
       }
-      if (!window.ATT_DB) throw new Error("قاعدة المرفقات غير متاحة");
+      if (!(typeof ATT_DB !== "undefined" ? ATT_DB : null)) throw new Error("قاعدة المرفقات غير متاحة");
       for (const item of payload.attachments) {
         if (!item || !item.aid || typeof item.base64 !== "string") throw new Error("بيانات مرفق غير صالحة");
         const blob = base64ToBlob(item.base64, item.type);
