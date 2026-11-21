@@ -14,6 +14,7 @@ function parseInvoiceAmount(value){
   return {
     total:totalCents/100,paid:recognizedPaid/100,
     remaining:Math.max(0,totalCents-recognizedPaid)/100,
+    overpaid:Math.max(0,recognizedPaid-totalCents)/100,
     status:totalCents>0&&paidCents>=totalCents?"paid":paidCents>0?"partial":inv.paid?"legacy":"unpaid",
     paymentRows:rows.length
     };
@@ -169,7 +170,7 @@ ${inv.client ? `<p><b>العميل:</b> ${esc(inv.client)}</p>` : ""}
   </table>
 </div>
 
-${P.status==="paid" ? '<div style="text-align:center;margin-top:20px"><span class="paid-stamp">مدفوعة بالكامل ✅</span></div>' : '<div style="margin-top:20px;padding:12px;background:#f8fafc;border-radius:8px"><b>حالة السداد:</b> '+(P.status==="partial"?"دفعة جزئية":P.status==="legacy"?"معلّمة مدفوعة سابقاً دون قبض موثق":"غير مسددة")+'<br><b>المقبوض الموثق:</b> '+P.paid.toFixed(2)+' '+cur+'<br><b>المتبقي:</b> '+P.remaining.toFixed(2)+' '+cur+'</div>'}
+${P.status==="paid" ? '<div style="text-align:center;margin-top:20px"><span class="paid-stamp">مدفوعة بالكامل ✅</span></div>' : '<div style="margin-top:20px;padding:12px;background:#f8fafc;border-radius:8px"><b>حالة السداد:</b> '+(P.status==="partial"?"دفعة جزئية":P.status==="legacy"?"معلّمة مدفوعة سابقاً دون قبض موثق":"غير مسددة")+'<br><b>المقبوض الموثق:</b> '+P.paid.toFixed(2)+' '+cur+'<br><b>المتبقي:</b> '+P.remaining.toFixed(2)+' '+cur+(P.overpaid>0?'<br><b>زيادة قبض تحتاج تسوية:</b> '+P.overpaid.toFixed(2)+' '+cur:'')+'</div>'}
 
 ${inv.notes ? `<p style="margin-top:20px;padding:12px;background:#f8fafc;border-radius:8px"><b>ملاحظات:</b><br>${esc(inv.notes)}</p>` : ""}
 
@@ -212,7 +213,7 @@ function invoicesSection(projId){
           <b>#${inv.number}</b>
           <span class=tag>${invoicePaymentSummary(inv).status==="paid" ? "✅ مدفوعة" : invoicePaymentSummary(inv).status==="partial" ? "دفعة جزئية" : invoicePaymentSummary(inv).status==="legacy" ? "مدفوعة قديماً — قبض غير موثق" : "⏳ غير مسددة"}</span>
         </div>
-        <small class=muted>${inv.date} · الإجمالي ${T.total.toFixed(2)} ${RB.data.settings.currency} · المقبوض ${invoicePaymentSummary(inv).paid.toFixed(2)} · المتبقي ${invoicePaymentSummary(inv).remaining.toFixed(2)}</small>
+        <small class=muted>${inv.date} · الإجمالي ${T.total.toFixed(2)} ${RB.data.settings.currency} · المقبوض ${invoicePaymentSummary(inv).paid.toFixed(2)} · المتبقي ${invoicePaymentSummary(inv).remaining.toFixed(2)}${invoicePaymentSummary(inv).overpaid>0?" · زيادة قبض "+invoicePaymentSummary(inv).overpaid.toFixed(2):""}</small>
         <div class=row style="margin-top:6px">
           <button onclick="addInvoiceItem('${inv.id}')">+ بند</button>
           <button class=p onclick="printInvoice('${inv.id}')">🖨️ طباعة/PDF</button>
