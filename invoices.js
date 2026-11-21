@@ -25,7 +25,7 @@ function customerInvoiceSummary(contact,invoices,contacts){
   if(!contact)return {invoices:0,total:0,paid:0,remaining:0,overpaid:0,unpaid:0,partial:0,paidInvoices:0};
   const allInvoices=Array.isArray(invoices)?invoices:[];
   const allContacts=Array.isArray(contacts)?contacts:[];
-  const norm=value=>String(value||"").normalize("NFKC").trim().replace(/\\s+/g," ").toLocaleLowerCase();
+  const norm=value=>String(value||"").normalize("NFKC").trim().replace(/\s+/g," ").toLocaleLowerCase();
   const sameName=allContacts.filter(row=>row.type==="client"&&norm(row.name)===norm(contact.name));
   const linked=allInvoices.filter(inv=>{
     const ids=[inv.clientContactId,inv.contactId,inv.customerId].filter(value=>value!==undefined&&value!==null&&String(value)!=="").map(String);
