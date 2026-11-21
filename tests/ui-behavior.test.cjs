@@ -224,6 +224,18 @@ assert.ok(pro.includes("window.rimbookWorkerSummary(worker.id,workerMonth)") && 
 
 assert.ok(backup.includes("collectRimbookBackup") && backup.includes("restoreRimbookBackup"), "one full backup and restore format must be shared across the app");
 assert.ok(backup.includes("ATT_DB.get") && backup.includes("ATT_DB.put"), "full backups must include and restore IndexedDB attachments");
+assert.ok(backup.includes("function validateFullBackupPayload(payload)") &&
+  backup.includes("payload.version > VERSION") &&
+  backup.includes("seen.has(item.aid)") &&
+  backup.includes("Number(item.size) !== blob.size"),
+  "full backup restore must validate version, duplicate attachment IDs and exact attachment sizes before writing");
+assert.ok(backup.includes("const previous = new Map()") &&
+  backup.includes("const written = []") &&
+  backup.includes("rollbackErrors") &&
+  backup.includes("await ATT_DB.del(aid)"),
+  "failed full backup restore must roll back changed attachments and remove newly-created ones");
+assert.ok(backup.includes("return restoreFullBackupPayload(payload)"),
+  "full backup restore must use the validated rollback-safe restore path");
 assert.ok(backup.includes("backupEncrypted") && backup.includes("gdriveUpload") && backup.includes("shareFileWhatsApp"), "encrypted, Google Drive and WhatsApp backup routes must use full backups");
 assert.ok(sync.includes("rimbook-backup-chunk") && sync.includes("restoreRimbookBackup"), "direct device transfer must carry and restore chunked full backups");
 assert.ok(activation.includes("تنزيل نسخة كاملة JSON") && activation.includes("shareFileWhatsApp"), "backup settings must expose complete backup and sharing actions");
