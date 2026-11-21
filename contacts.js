@@ -39,8 +39,12 @@ function contactRows(query){
   return rows.map(c=>{
     const phone=String(c.phone||"").trim(),email=String(c.email||"").trim(),digits=contactDigits(phone);
     const type=({worker:"عامل",client:"عميل",supplier:"مورد",other:"أخرى"})[c.type]||"جهة اتصال";
+    const supplier=c.type==="supplier"&&window.rimbookSupplierSummary?window.rimbookSupplierSummary(c.id):null;
+    const currency=String(RB.data.settings?.currency||"");
+    const fmt=n=>Number(n||0).toLocaleString("ar",{minimumFractionDigits:2,maximumFractionDigits:2})+" "+esc(currency);
     return '<article class=card style="margin-top:8px"><div class=row style="justify-content:space-between"><b style="font-size:16px">'+escv(c.name)+'</b><span class=tag>'+type+'</span></div>'+
       (c.company?'<p class=muted>'+escv(c.company)+'</p>':"")+
+      (supplier?'<div class="grid2" style="margin:8px 0"><div><small class=muted>إجمالي مشترياته</small><b>'+fmt(supplier.total)+'</b></div><div><small class=muted>المدفوع</small><b>'+fmt(supplier.paid)+'</b></div><div><small class=muted>المتبقي له</small><b>'+fmt(supplier.outstanding)+'</b></div><div><small class=muted>صافي تكلفة المشتريات</small><b>'+fmt(supplier.netCost)+'</b></div></div><small class=muted>عدد فواتير الشراء المرتبطة: '+supplier.purchases+' · الملغاة: '+supplier.cancelled+'</small>':"")+
       (phone?'<p style="direction:ltr;text-align:right"><a href="tel:'+escv(phone)+'" style="color:var(--ac);font-size:16px;font-weight:700">'+escv(phone)+'</a></p>':"")+
       (email?'<p style="direction:ltr;text-align:right"><a href="mailto:'+escv(email)+'" style="color:var(--ac)">'+escv(email)+'</a></p>':"")+
       (c.address?'<p class=muted>📍 '+escv(c.address)+'</p>':"")+(c.notes?'<p>'+escv(c.notes)+'</p>':"")+
