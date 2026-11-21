@@ -13,6 +13,7 @@
   const val = id => ($id(id)?.value || "").trim();
   const num = id => Number(val(id));
   const today = () => iso(new Date());
+  const validDate = value => /^\\d{4}-\\d{2}-\\d{2}$/.test(value) && new Date(value+"T00:00:00Z").toISOString().slice(0,10)===value;
   const safe = value => esc(String(value ?? ""));
   const workers = () => (RB.data.workers || []).slice().sort((a,b) => String(a.name).localeCompare(String(b.name), "ar"));
   const projects = () => RB.data.projects || [];
