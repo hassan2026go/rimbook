@@ -331,6 +331,36 @@ const invoicePaymentSummary = extractFunction(invoiceCode, "invoicePaymentSummar
   invoiceLedgerRows=[{invoiceId:"inv-1",rec:110}];
   assert.equal(invoicePaymentSummary(invoice).overpaid,10,"excess customer receipts must be surfaced instead of silently hidden");
 }
+const customerInvoiceSummary = extractFunction(invoiceCode, "customerInvoiceSummary", {
+  invoicePaymentSummary,
+  invoiceCents:value=>Math.round((Number(value)||0)*100)
+});
+{
+  const customers=[
+    {id:"c1",type:"client",name:"شركة النور"},
+    {id:"c2",type:"client",name:"شركة النور"},
+    {id:"c3",type:"client",name:"عميل منفرد"}
+  ];
+  const invoices=[
+    {id:"ci-1",clientContactId:"c1",client:"شركة النور",items:[{qty:1,price:100}]},
+    {id:"ci-2",client:"عميل منفرد",items:[{qty:2,price:25}]},
+    {id:"ci-3",client:"شركة النور",items:[{qty:1,price:900}]}
+  ];
+  invoiceLedgerRows=[{invoiceId:"ci-1",rec:30}];
+  assert.deepEqual({...customerInvoiceSummary(customers[0],invoices,customers)},
+    {invoices:1,total:100,paid:30,remaining:70,overpaid:0,unpaid:0,partial:1,paidInvoices:0},
+    "customer account must aggregate invoices explicitly linked to the contact");
+  assert.deepEqual({...customerInvoiceSummary(customers[2],invoices,customers)},
+    {invoices:1,total:50,paid:0,remaining:50,overpaid:0,unpaid:1,partial:0,paidInvoices:0},
+    "a unique exact customer name may safely link a legacy invoice without a contact id");
+  assert.equal(customerInvoiceSummary(customers[1],invoices,customers).invoices,0,
+    "legacy invoices must not be ambiguously assigned when multiple customers share a name");
+}
+assert.ok(invoiceCode.includes("window.rimbookCustomerInvoiceSummary") &&
+  contactsSource.includes("window.rimbookCustomerInvoiceSummary(c)") &&
+  contactsSource.includes("المتبقي على العميل"),
+  "customer contact cards must show invoice balances from the shared invoice ledger");
+
 const purchaseAccounting = extractFunction(purchases, "purchaseAccounting", {
   cents: value => Math.round((Number(value) || 0) * 100)
 });
