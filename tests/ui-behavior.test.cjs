@@ -218,6 +218,7 @@ assert.ok(notebook.includes("delete VIEWS.habits") && notebook.includes("delete 
 assert.ok(notebook.includes('agenda: "notebook"') && notebook.includes('notes: "notebook"') && notebook.includes('reminders: "notebook"'), "old navigation links must resolve to the unified notebook");
 assert.ok(push.includes("event.reminderEnabled===false") && push.includes("if(!event.t||event.reminderEnabled===false)return"), "disabled or untimed reminders must not notify");
 assert.ok(pro.includes("مستحقات العمال المتبقية") && pro.includes("إدارة العمال واليومية"), "management dashboard must show worker payroll and routes");
+assert.ok(pro.includes("window.rimbookWorkerSummary(worker.id,workerMonth)") && workforce.includes("window.rimbookWorkerSummary = summary"), "worker home balance must use the same cumulative carry-forward calculation as payroll");
 
 
 assert.ok(backup.includes("collectRimbookBackup") && backup.includes("restoreRimbookBackup"), "one full backup and restore format must be shared across the app");
