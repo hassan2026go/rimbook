@@ -52,6 +52,7 @@
       workerDue:Math.round(Math.max(0,base+overtimePay)*100)/100
     };
   }
+  window.rimbookCalculateWorkerPay = calculateWorkerPay;
   window.rimbookWorkerDailyRate = function (id) {
     const worker = workers().find(w => String(w.id) === String(id));
     return worker ? workerDailyRate(worker) : 0;
@@ -129,6 +130,8 @@
     const normalHours = num("wd-hours"), lateHours = num("wd-late"), otHours = num("wd-ot");
     if (!validDate(date)) return toast("تحقق من التاريخ وصحته في التقويم");
     if (!["work","holiday","absence"].includes(status)) return toast("اختر حالة الدوام");
+    const duplicate=workRows(worker.id).some(x=>x.d===date&&["work","holiday","absence"].includes(x.k)&&!x.isReversal&&!x.reversedBy);
+    if (duplicate) return toast("يوجد سجل دوام لهذا العامل في هذا التاريخ. صحّح السجل السابق بقيد عكسي قبل إعادة التسجيل.");
     if (![normalHours,lateHours,otHours].every(Number.isFinite) || normalHours < 0 || lateHours < 0 || otHours < 0 || normalHours > planned || lateHours > normalHours || otHours > 24) {
       return toast("تحقق من الساعات: الساعات العادية لا تتجاوز ساعات الدوام المعتمدة، والتأخير لا يتجاوز ساعات العمل");
     }
@@ -162,7 +165,7 @@
     if (!worker || !["paid","advance"].includes(kind)) return;
     const raw = prompt(kind === "paid" ? "المبلغ المدفوع للعامل" : "مبلغ السلفة المقدمة للعامل", "");
     if (raw === null) return;
-    const amount = Number(digits(raw).replace(",", "."));
+    const amount = Number(digits(raw).replace(/٬/g,"").replace("٫",".").replace(",", "."));
     if (!Number.isFinite(amount) || amount <= 0) return toast("أدخل مبلغاً صحيحاً أكبر من صفر");
     const note = prompt("بيان الحركة (اختياري)", kind === "paid" ? "تسديد أجور" : "سلفة للعامل");
     if (note === null) return;
