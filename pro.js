@@ -65,8 +65,8 @@ VIEWS.home=function(){
  const payrollPaid=payrollRows.reduce((s,x)=>s+(Number(x.workerPaid)||0),0);
  const payrollAdvances=payrollRows.reduce((s,x)=>s+(Number(x.workerAdvance)||0),0);
  const payrollBalance=payrollDue-payrollPaid-payrollAdvances;
- const purchaseTotal=(D.purchases||[]).reduce((sum,p)=>{const paid=(p.payments||[]).reduce((a,x)=>a+(Number(x.amount)||0),0),refund=(p.refunds||[]).reduce((a,x)=>a+(Number(x.amount)||0),0);return sum+(p.status==="cancelled"?Math.max(0,paid-refund):(Number(p.total)||0));},0);
- const purchaseOutstanding=(D.purchases||[]).filter(p=>p.status!=="cancelled").reduce((sum,p)=>sum+Math.max(0,(Number(p.total)||0)-(p.payments||[]).reduce((a,x)=>a+(Number(x.amount)||0),0)),0);
+ const purchaseTotal=(D.purchases||[]).reduce((sum,p)=>sum+(window.rimbookPurchaseAccounting?window.rimbookPurchaseAccounting(p).netCost:(Number(p.total)||0)),0);
+ const purchaseOutstanding=(D.purchases||[]).reduce((sum,p)=>sum+(window.rimbookPurchaseAccounting?window.rimbookPurchaseAccounting(p).remaining:Math.max(0,(Number(p.total)||0)-(p.payments||[]).reduce((a,x)=>a+(Number(x.amount)||0),0))),0);
  const projectCards=(D.projects||[]).slice(0,4).map(p=>{const pr=taskProgress(p.id);return '<div class="item"><span><b>'+safe(p.name)+'</b><div class="progress"><div style="width:'+pr.percent+'%"></div></div><small class="muted">'+pr.done+'/'+pr.total+' مهام مكتملة</small></span>'+pill(pr.percent+"%")+'</div>';}).join("");
  if(profile.role==="worker"){
   const worker= (D.workers||[]).find(w=>String(w.id)===String(profile.workerId||""));
