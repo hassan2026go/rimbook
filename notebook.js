@@ -38,10 +38,10 @@
     } else {
       if (!title) return toast("اكتب عنوان الموعد أو التذكير");
       if (date < today()) return toast("اختر اليوم أو تاريخاً قادماً");
-      const reminderCategory = mode === "reminder" ? (value("nb-category") || "other") : "appointment";
+      const reminderCategory = mode === "reminder" ? (value("nb-category") || "other") : "";
       if (!RB.add({
         type: "event", title, d: date, t: time || "09:00", project,
-        reminderCategory, reminderEnabled: mode === "reminder",
+        reminderCategory, notebookKind: mode, reminderEnabled: mode === "reminder",
         reminderLead: 15, notebookEntry: true
       })) return;
       toast(mode === "reminder" ? "تم حفظ التذكير" : "تم حفظ الموعد");
