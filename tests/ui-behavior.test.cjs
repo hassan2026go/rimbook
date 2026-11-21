@@ -230,4 +230,12 @@ assert.ok(voiceLedger.includes("window.voiceAudioStart") && voiceLedger.includes
 assert.ok(voiceLedger.includes("window.voiceAudioPlay") && voiceLedger.includes("voice-audio-"), "the worker voice log must support playback of saved audio");
 assert.ok(voiceLedger.includes("attachments:[{aid,name,type,size:blob.size}]"), "recorded audio must be linked to the backup attachment system");
 
+
+assert.ok(backup.includes("buildStoredZip") && backup.includes("parseStoredZip"), "full ZIP backup and restore must be implemented");
+assert.ok(backup.includes("window.backupZip") && backup.includes("window.restoreZip"), "ZIP actions must be callable from settings");
+assert.ok(activation.includes("backupZip()") && activation.includes("restoreZip(this)"), "settings must expose ZIP export and restore");
+assert.ok(activation.includes("rimbookCoreSettingsView") && activation.includes("مراكز الإعدادات المتقدمة"), "the settings hub must preserve storage/payroll settings and link to advanced centers");
+assert.ok(activation.includes("profile-worker") && app.includes('"workerId"'), "a worker profile must link to its worker record");
+assert.ok(pro.includes("profile.workerId") && voiceLedger.includes("workerId=workerMatch?.id"), "worker personal views and voice records must be associated with the correct worker");
+
 console.log("UI behavior tests passed.");
