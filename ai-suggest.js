@@ -10,9 +10,6 @@ function generateSuggestions(){
   const late = open.filter(t => t.due && t.due < today);
   const upcoming = open.filter(t => t.due && t.due === today);
   const events = dayEvents(today);
-  const habits = RB.data.habits.filter(h => !pid || h.project === pid);
-  const habitsDone = habits.filter(h => (h.history || []).includes(today)).length;
-
   /* مهام متأخرة */
   if(late.length > 0){
     suggestions.push({
@@ -30,16 +27,6 @@ function generateSuggestions(){
       text: `${upcoming.length} مهمة مستحقة اليوم`,
       action: () => go("tasks"),
       actionText: "عرض"
-    });
-  }
-
-  /* عادات لم تُنجز */
-  if(habits.length > 0 && habitsDone < habits.length){
-    suggestions.push({
-      icon: "🔥",
-      text: `${habits.length - habitsDone} عادة متبقية اليوم`,
-      action: () => go("habits"),
-      actionText: "البدء"
     });
   }
 
