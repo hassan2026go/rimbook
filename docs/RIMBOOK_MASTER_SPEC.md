@@ -110,7 +110,7 @@
 - Provide local full backup, encrypted full backup, restore, CSV/ICS export, share to other apps, optional Google Drive backup and direct device-to-device transfer.
 - Full restore must validate the backup before replacing data and must preserve attachment links.
 - Preserve backward compatibility with older JSON backups.
-- Add ZIP export/import of the full data set and attachments as a remaining deliverable.
+- ZIP export/import of the full data set and attachments has been added; it uses stored ZIP entries and requires compatibility tests with large files and external ZIP tools.
 - Explain storage quota and persistent-storage support honestly. Browser storage persistence is not a substitute for backups.
 - Cloud sync is optional and must not become a dependency for ordinary local operation.
 - Keep secrets/tokens out of public source files and never include API keys in exports without an explicit user choice.
@@ -136,6 +136,10 @@ Settings must control real behavior, not merely appearance:
 - The accumulated storage-integrity, worker communication, reminders, receipts and voice-ledger changes were consolidated into main.
 - The notebook screen now combines notes, appointments and reminders; Habits is removed from active navigation.
 - Worker directory, daily attendance and monthly payroll screens have been added and linked from the management dashboard.
+- Worker profiles now link to their personal view; workers see only their assigned tasks and their own work/voice records in the worker role.
+- Management tasks can be assigned to a worker. Project profiles now capture client, location, description, start/due dates and budget; project cards show assigned workers, payroll, operating expenses, purchases, receivables and receipts.
+- Project archival replaces destructive deletion, preserving all linked work and financial history.
+- A project-linked materials/purchases ledger records suppliers, quantities, unit prices, partial payments, outstanding supplier balances and documented cancellations/refunds.
 - Worker wage accrual, payments and advances are separate fields; audited reversal entries include these values.
 - Arabic speech-to-record review exists; original audio recording/playback has been added to the voice log.
 - Full backup/restore now packages records and IndexedDB attachments for local, encrypted, Google Drive, sharing and WebRTC paths.
