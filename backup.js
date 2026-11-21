@@ -166,6 +166,128 @@
     } catch (e) { toastError(e.message || "تعذر تنزيل النسخة"); }
   };
 
+  function crc32(bytes) {
+    let crc = 0xffffffff;
+    for (let i = 0; i < bytes.length; i++) {
+      crc ^= bytes[i];
+      for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+  }
+  function concatBytes(parts) {
+    const length = parts.reduce((sum, part) => sum + part.length, 0);
+    const out = new Uint8Array(length);
+    let offset = 0;
+    for (const part of parts) { out.set(part, offset); offset += part.length; }
+    return out;
+  }
+  function u16(value) { return new Uint8Array([value & 255, (value >>> 8) & 255]); }
+  function u32(value) { return new Uint8Array([value & 255, (value >>> 8) & 255, (value >>> 16) & 255, (value >>> 24) & 255]); }
+  function buildStoredZip(files) {
+    const encoder = new TextEncoder(), local = [], central = [];
+    let offset = 0;
+    for (const file of files) {
+      const name = encoder.encode(file.name), data = file.data;
+      const crc = crc32(data), size = data.length, flags = 0x0800;
+      const header = concatBytes([
+        u32(0x04034b50),u16(20),u16(flags),u16(0),u16(0),u16(0),
+        u32(crc),u32(size),u32(size),u16(name.length),u16(0),name
+      ]);
+      local.push(header, data);
+      const directory = concatBytes([
+        u32(0x02014b50),u16(20),u16(20),u16(flags),u16(0),u16(0),u16(0),
+        u32(crc),u32(size),u32(size),u16(name.length),u16(0),u16(0),
+        u16(0),u16(0),u32(0),u32(offset),name
+      ]);
+      central.push(directory);
+      offset += header.length + data.length;
+    }
+    const centralBytes = concatBytes(central), localBytes = concatBytes(local);
+    const end = concatBytes([
+      u32(0x06054b50),u16(0),u16(0),u16(files.length),u16(files.length),
+      u32(centralBytes.length),u32(localBytes.length),u16(0)
+    ]);
+    return concatBytes([localBytes, centralBytes, end]);
+  }
+  function parseStoredZip(bytes) {
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const decoder = new TextDecoder();
+    const files = new Map();
+    let offset = 0;
+    while (offset + 30 <= bytes.length && view.getUint32(offset, true) === 0x04034b50) {
+      const flags = view.getUint16(offset + 6, true);
+      const method = view.getUint16(offset + 8, true);
+      const expectedCrc = view.getUint32(offset + 14, true);
+      const size = view.getUint32(offset + 18, true);
+      const nameLength = view.getUint16(offset + 26, true);
+      const extraLength = view.getUint16(offset + 28, true);
+      if ((flags & 8) || method !== 0) throw new Error("ملف ZIP مضغوط أو يستخدم واصف بيانات غير مدعوم");
+      const nameStart = offset + 30;
+      const dataStart = nameStart + nameLength + extraLength;
+      const name = decoder.decode(bytes.subarray(nameStart, nameStart + nameLength));
+      const data = bytes.slice(dataStart, dataStart + size);
+      if (data.length !== size || crc32(data) !== expectedCrc) throw new Error("تلف في أحد ملفات ZIP");
+      files.set(name, data);
+      offset = dataStart + size;
+    }
+    if (!files.has("rimbook-backup.json")) throw new Error("ملف بيانات Rimbook غير موجود داخل ZIP");
+    return files;
+  }
+
+  window.backupZip = async function () {
+    try {
+      const payload = await collectRimbookBackup();
+      const encoder = new TextEncoder();
+      const attachments = [];
+      const files = [];
+      for (const item of payload.attachments) {
+        const path = "attachments/" + item.aid + ".bin";
+        const binary = atob(item.base64);
+        const data = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) data[i] = binary.charCodeAt(i);
+        files.push({ name: path, data });
+        attachments.push({ aid:item.aid, name:item.name, type:item.type, size:item.size, path });
+      }
+      const manifest = {
+        format: FORMAT, version: VERSION, createdAt: payload.createdAt,
+        appData: payload.appData, attachments
+      };
+      files.unshift({ name:"rimbook-backup.json", data:encoder.encode(JSON.stringify(manifest)) });
+      const zip = buildStoredZip(files);
+      dl("rimbook-full-backup-" + fileDate() + ".zip", new Blob([zip], {type:"application/zip"}), "application/zip");
+      toast("تم إنشاء ملف ZIP كامل يضم البيانات و" + attachments.length + " مرفقاً");
+    } catch (e) { toastError(e.message || "تعذر إنشاء ZIP"); }
+  };
+
+  window.restoreZip = async function (input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    try {
+      const files = parseStoredZip(new Uint8Array(await file.arrayBuffer()));
+      const decoder = new TextDecoder();
+      const manifest = JSON.parse(decoder.decode(files.get("rimbook-backup.json")));
+      if (!manifest || manifest.format !== FORMAT || !manifest.appData || !Array.isArray(manifest.attachments)) {
+        throw new Error("بنية نسخة ZIP غير صالحة");
+      }
+      const attachments = [];
+      for (const item of manifest.attachments) {
+        const bytes = files.get(item.path);
+        if (!bytes) throw new Error("مرفق مفقود داخل ZIP: " + (item.name || item.aid));
+        attachments.push({
+          aid:item.aid, name:item.name, type:item.type, size:bytes.length,
+          base64:bytesToBase64(bytes)
+        });
+      }
+      if (!confirm("ستُستبدل بيانات المفكرة الحالية بمحتويات ملف ZIP الكامل. هل تريد المتابعة؟")) return;
+      const result = await restoreRimbookBackup({
+        format:FORMAT, version:manifest.version, createdAt:manifest.createdAt,
+        appData:manifest.appData, attachments
+      });
+      toast("تمت استعادة نسخة ZIP والبيانات و" + result.attachments + " مرفقاً");
+    } catch (e) { toastError(e.message || "ملف ZIP غير صالح"); }
+    finally { input.value = ""; }
+  };
+
   async function shareFullBackup(target) {
     try {
       const payload = await collectRimbookBackup();
