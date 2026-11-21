@@ -1,20 +1,40 @@
 /* rimbook attachments.js - مرفقات لكل عنصر */
-
 const ATT_DB = (() => {
   let db;
   const open = () => db || (db = new Promise((res, rej) => {
     const q = indexedDB.open("rimbook-att", 1);
-    q.onupgradeneeded = () => q.result.createObjectStore("files");
+    q.onupgradeneeded = () => {
+      if (!q.result.objectStoreNames.contains("files")) q.result.createObjectStore("files");
+    };
     q.onsuccess = () => res(q.result);
-    q.onerror = () => rej(q.error);
+    q.onerror = () => rej(q.error || new Error("تعذر فتح قاعدة المرفقات"));
+    q.onblocked = () => rej(new Error("قاعدة المرفقات مشغولة في نافذة أخرى"));
   }));
   const tx = async (mode, fn) => {
     const d = await open();
     return new Promise((res, rej) => {
-      const t = d.transaction("files", mode);
-      const r = fn(t.objectStore("files"));
-      t.oncomplete = () => res(r && r.result);
-      t.onerror = () => rej(t.error);
+      let request;
+      let settled = false;
+      const finishError = error => {
+        if (settled) return;
+        settled = true;
+        rej(error || new Error("فشلت معاملة المرفقات"));
+      };
+      let t;
+      try {
+        t = d.transaction("files", mode);
+        request = fn(t.objectStore("files"));
+      } catch (error) {
+        finishError(error);
+        return;
+      }
+      t.oncomplete = () => {
+        if (settled) return;
+        settled = true;
+        res(request && request.result);
+      };
+      t.onerror = () => finishError(t.error);
+      t.onabort = () => finishError(t.error);
     });
   };
   return {
@@ -25,33 +45,65 @@ const ATT_DB = (() => {
 })();
 
 async function attachFile(itemId, input){
-  const f = input.files[0];
+  const f = input.files && input.files[0];
   if(!f) return;
-  const aid = "att-" + Date.now();
-  await ATT_DB.put(aid, { name: f.name, type: f.type, size: f.size, blob: f });
-  const item = RB.data.items.find(x => x.id === itemId);
-  if(item){
-    if(!item.attachments) item.attachments = [];
-    item.attachments.push({ aid, name: f.name, type: f.type, size: f.size });
-    RB.save();
+  const item = RB.data.items.find(x => String(x.id) === String(itemId));
+  if(!item){ toast("لم نعثر على السجل المراد إرفاق الملف به"); input.value=""; return; }
+  const aid = "att-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2,8);
+  try {
+    await ATT_DB.put(aid, { name: f.name, type: f.type, size: f.size, blob: f });
+    const saved = RB.transact(data => {
+      const target = data.items.find(x => String(x.id) === String(itemId));
+      if(!target) throw new Error("السجل لم يعد موجوداً");
+      if(!Array.isArray(target.attachments)) target.attachments = [];
+      target.attachments.push({ aid, name: f.name, type: f.type, size: f.size });
+    });
+    if(!saved){
+      try { await ATT_DB.del(aid); }
+      catch(error){ toast("لم يُربط الملف بالسجل، وتعذر تنظيف الملف المؤقت؛ أعد النسخ الاحتياطي بعد مراجعة المرفقات."); }
+      return;
+    }
     render();
-    toast("✅ أرفق: " + f.name);
+    toast("✅ أُرفق: " + f.name);
+  } catch(error) {
+    toast("تعذر إرفاق الملف: " + (error.message || "خطأ في التخزين"));
+  } finally {
+    input.value = "";
   }
 }
 
 async function openAttachment(aid){
-  const a = await ATT_DB.get(aid);
-  if(!a) return toast("الملف غير موجود");
-  const url = URL.createObjectURL(a.blob);
-  window.open(url, "_blank");
+  try {
+    const a = await ATT_DB.get(aid);
+    if(!a || !a.blob) return toast("الملف غير موجود");
+    const url = URL.createObjectURL(a.blob);
+    const opened = window.open(url, "_blank");
+    if(!opened) toast("اسمح بفتح النوافذ لعرض المرفق");
+  } catch(error) {
+    toast("تعذر فتح المرفق: " + (error.message || "خطأ في التخزين"));
+  }
 }
 
 async function delAttachment(itemId, aid){
-  await ATT_DB.del(aid);
-  const item = RB.data.items.find(x => x.id === itemId);
-  if(item && item.attachments){
-    item.attachments = item.attachments.filter(x => x.aid !== aid);
-    RB.save(); render();
+  const item = RB.data.items.find(x => String(x.id) === String(itemId));
+  if(!item || !(item.attachments || []).some(att => String(att.aid) === String(aid))) {
+    return toast("لم نعثر على المرفق المرتبط بهذا السجل");
+  }
+  const saved = RB.transact(data => {
+    const target = data.items.find(x => String(x.id) === String(itemId));
+    if(!target || !Array.isArray(target.attachments)) throw new Error("السجل أو المرفق لم يعد موجوداً");
+    const before = target.attachments.length;
+    target.attachments = target.attachments.filter(att => String(att.aid) !== String(aid));
+    if(target.attachments.length === before) throw new Error("لم يتم العثور على المرفق");
+  });
+  if(!saved) return;
+  try {
+    await ATT_DB.del(aid);
+    render();
+    toast("تم حذف المرفق");
+  } catch(error) {
+    render();
+    toast("أزيل ارتباط المرفق من السجل، لكن تعذر حذف الملف المخزن؛ أنشئ نسخة احتياطية ثم أعد المحاولة");
   }
 }
 
@@ -70,4 +122,4 @@ function attachmentsSection(item){
       <button onclick="delAttachment('${item.id}','${a.aid}')">🗑</button>
     </div>`).join("")}
   </div>`;
-  }
+}
