@@ -81,6 +81,9 @@ window.voiceLedgerConfirm=function(){
   return {...entry,workerId,person:worker.name,normalHours,workerDue,overtimePay:pay.overtimePay,workerPaid:entry.k==="payment"?(Number(entry.rec)||0):0,
    workerAdvance:entry.k==="advance"?(Number(entry.advance)||0):0,due:0,rec:0,advance:0};
  });
+ const duplicateAttendance=entries.find(entry=>entry.workerId&&["work","holiday","absence"].includes(entry.k)&&
+  D.items.some(row=>row.type==="work"&&String(row.workerId||"")===String(entry.workerId)&&row.d===entry.d&&["work","holiday","absence"].includes(row.k)&&!row.isReversal&&!row.reversedBy));
+ if(duplicateAttendance){toast("يوجد سجل دوام لهذا العامل في هذا التاريخ. صحّح السجل السابق بقيد عكسي قبل اعتماد التسجيل الصوتي.");return;}
  const workerId=entries.find(x=>x.workerId)?.workerId||null;
  const person=entries.find(x=>x.workerId)?.person||"";
  const ok=RB.transact(d=>{
@@ -96,6 +99,8 @@ function voiceLedgerSaveQuick(kind,amount,workDetails){
  if(!labels[kind])return;
  const worker=D.profile?.role==="worker"?(D.workers||[]).find(w=>String(w.id)===String(D.profile.workerId||"")&&w.active!==false):null;
  if(D.profile?.role==="worker"&&!worker)return toast("اربط ملف العامل من صفحة الملف الشخصي أولاً"),false;
+ if(worker&&["work","holiday"].includes(kind)&&D.items.some(row=>row.type==="work"&&String(row.workerId||"")===String(worker.id)&&row.d===today()&&["work","holiday","absence"].includes(row.k)&&!row.isReversal&&!row.reversedBy))
+  return toast("يوجد سجل دوام لهذا العامل اليوم. صحّح السجل السابق بقيد عكسي قبل التسجيل مرة أخرى."),false;
  const otHours=kind==="work"?Math.max(0,Number(workDetails?.otHours)||0):0;
  const normalHours=kind==="work"?Math.max(0,Number(workDetails?.normalHours)||Number(D.settings.normalHoursPerDay)||8):0;
  const overtimeEnabled=!!D.settings.overtimeEnabled;
