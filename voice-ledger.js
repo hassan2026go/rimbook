@@ -10,7 +10,7 @@ const normalize=s=>String(s||"").toLowerCase()
  .replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d))
  .replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d))
  .replace(/[\u064B-\u065F\u0670]/g,"").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي")
- .replace(/[،,]/g," ").replace(/\s+/g," ").trim();
+ .replace(/٫/g,".").replace(/٬/g,"").replace(/[،,]/g," ").replace(/\s+/g," ").trim();
 function applyWorkReversal(data,id,reason,now,newId){
  const items=Array.isArray(data?.items)?data.items:null;
  if(!items)return {ok:false,error:"تعذر الوصول إلى سجل الحركات"};
@@ -242,8 +242,17 @@ window.voiceAudioStart=async function(){
     const aid="voice-audio-"+Date.now().toString(36);
     const name="rimbook-voice-"+today()+"."+(/mp4/i.test(type)?"m4a":"webm");
     await ATT_DB.put(aid,{name,type,size:blob.size,blob});
-    const saved=RB.add({type:"voice_log",d:today(),body:"تسجيل صوتي محفوظ",workerId:D.profile?.role==="worker"?D.profile.workerId:null,person:D.profile?.name||"",attachments:[{aid,name,type,size:blob.size}],created:Date.now()});
-    if(!saved){await ATT_DB.del(aid);return;}
+    let saved=false;
+    try {
+     saved=RB.add({type:"voice_log",d:today(),body:"تسجيل صوتي محفوظ",workerId:D.profile?.role==="worker"?D.profile.workerId:null,person:D.profile?.name||"",attachments:[{aid,name,type,size:blob.size}],created:Date.now()});
+    } catch(error) {
+     try { await ATT_DB.del(aid); } catch(cleanupError) { console.error("Voice attachment cleanup failed",cleanupError); }
+     throw error;
+    }
+    if(!saved){
+     try { await ATT_DB.del(aid); } catch(cleanupError) { console.error("Voice attachment cleanup failed",cleanupError); }
+     return toast("تعذر ربط التسجيل بسجل المفكرة؛ لم يُعتمد التسجيل");
+    }
     toast("تم حفظ التسجيل الصوتي ويمكنك تشغيله من السجل");
     render();
    }catch(error){toast("تعذر حفظ التسجيل الصوتي: "+(error.message||"خطأ"));}
