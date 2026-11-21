@@ -117,7 +117,7 @@
     const aliases = { agenda: "notebook", notes: "notebook", reminders: "notebook" };
     return originalGo(aliases[route] || route);
   };
-  TABS.notebook = ["📒", "المفكرة"];
+  delete VIEWS.habits;\n  delete TABS.habits;\n  TABS.notebook = ["📒", "المفكرة"];
   ["employee", "worker"].forEach(role => {
     const old = ROLES[role].tabs.filter(tab => !["agenda", "notes", "reminders", "habits"].includes(tab));
     const at = Math.max(0, old.indexOf("tasks") + 1);
