@@ -1,4 +1,4 @@
-const CACHE_NAME = "rimbook-pwa-v19";
+const CACHE_NAME = "rimbook-pwa-v20";
 const APP_FILES = [
   "./",
   "./index.html",
