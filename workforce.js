@@ -37,6 +37,7 @@
       balance: sum(throughRows,"workerDue")-sum(throughRows,"workerPaid")-sum(throughRows,"workerAdvance")
     };
   }
+  window.rimbookWorkerSummary = summary;
   function workerDailyRate(worker) {
     const rate = Math.max(0,Number(worker.wageRate) || 0);
     if (worker.wageType === "weekly") return rate / Math.max(1, Number(RB.data.settings.payrollDaysPerWeek) || 6);
