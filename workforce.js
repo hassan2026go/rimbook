@@ -44,13 +44,15 @@
     return rate;
   }
   function calculateWorkerPay(status,daily,normalHours,lateHours,plannedHours,overtimeHours,overtimeRate,overtimeEnabled,holidayPercent) {
-    const planned=Math.max(0.01,Number(plannedHours)||8);
-    const dailyRate=Math.max(0,Number(daily)||0);
-    const normal=Math.max(0,Number(normalHours)||0);
-    const late=Math.min(normal,Math.max(0,Number(lateHours)||0));
-    const extraHours=Math.max(0,Number(overtimeHours)||0);
-    const extraRate=Math.max(0,Number(overtimeRate)||0);
-    const holidayRate=Math.min(100,Math.max(0,Number(holidayPercent)||0));
+    const nonNegative=value=>{const n=Number(value);return Number.isFinite(n)?Math.max(0,n):0;};
+    const plannedInput=Number(plannedHours);
+    const planned=Number.isFinite(plannedInput)&&plannedInput>0?plannedInput:8;
+    const dailyRate=nonNegative(daily);
+    const normal=nonNegative(normalHours);
+    const late=Math.min(normal,nonNegative(lateHours));
+    const extraHours=nonNegative(overtimeHours);
+    const extraRate=nonNegative(overtimeRate);
+    const holidayRate=Math.min(100,nonNegative(holidayPercent));
     const base=status==="work" ? dailyRate*Math.max(0,normal-late)/planned
       : status==="holiday" ? dailyRate*holidayRate/100 : 0;
     const overtimePay=status==="work"&&overtimeEnabled ? extraHours*extraRate : 0;
