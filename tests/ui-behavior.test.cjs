@@ -113,6 +113,7 @@ assert.ok(voiceLedger.includes("countedRows.filter(w=>w.k===\"work\")"));
 assert.ok(receipts.includes("ملغى بقيد عكسي موثق"));
 assert.ok(receipts.includes('worker_payment:"تسديد أجر عامل"') && receipts.includes('worker_advance:"سلفة عامل"'), "worker payroll movements must be eligible for linked receipts");
 assert.ok(receipts.includes('Number(x.workerPaid)||0') && receipts.includes('Number(x.workerAdvance)||0'), "worker receipts must print the exact payroll payment or advance amount");
+assert.ok(receipts.includes('const available=RB.all("work").filter(x=>["payment","advance","expense","worker_payment","worker_advance"]'), "worker payroll movements must appear in the receipt attachment selector");
 
 {
   const data = { items: [{ type: "work", id: "pay-1", k: "payment", d: "2026-11-20", rec: 100, due: 0, advance: 0, expense: 0, ds: "دفعة" }] };
