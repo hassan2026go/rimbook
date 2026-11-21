@@ -219,7 +219,7 @@ window.voiceAudioStart=async function(){
     const aid="voice-audio-"+Date.now().toString(36);
     const name="rimbook-voice-"+today()+"."+(/mp4/i.test(type)?"m4a":"webm");
     await ATT_DB.put(aid,{name,type,size:blob.size,blob});
-    const saved=RB.add({type:"voice_log",d:today(),body:"تسجيل صوتي محفوظ",attachments:[{aid,name,type,size:blob.size}],created:Date.now()});
+    const saved=RB.add({type:"voice_log",d:today(),body:"تسجيل صوتي محفوظ",workerId:D.profile?.role==="worker"?D.profile.workerId:null,person:D.profile?.name||"",attachments:[{aid,name,type,size:blob.size}],created:Date.now()});
     if(!saved){await ATT_DB.del(aid);return;}
     toast("تم حفظ التسجيل الصوتي ويمكنك تشغيله من السجل");
     render();
