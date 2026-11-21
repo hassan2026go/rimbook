@@ -19,10 +19,10 @@ const reversalMatch = voiceLedger.match(/function applyWorkReversal\(data,id,rea
 assert.ok(reversalMatch, "financial reversal helper must exist");
 const applyWorkReversal = vm.runInNewContext("(" + reversalMatch[0] + ")");
 
-function extractFunction(source, name) {
+function extractFunction(source, name, helpers = {}) {
   const match = source.match(new RegExp("function " + name + "\\([^)]*\\) \\{[\\s\\S]*?\\n  \\}"));
   assert.ok(match, name + " helper must exist");
-  return vm.runInNewContext("(" + match[0] + ")");
+  return vm.runInNewContext("(" + match[0] + ")", helpers);
 }
 
 const projectOptions = extractFunction(activation, "projectOptions");
@@ -274,9 +274,9 @@ assert.ok(workforce.includes("normalHours > planned"), "normal hours cannot exce
 assert.ok(workforce.includes("!x.reversedBy).length"), "reversed holidays and absences must not remain counted");
 
 
-const purchaseAccountingMatch = purchases.match(/function purchaseAccounting\\(p\\) \\{[\\s\\S]*?\\n  \\}/);
-assert.ok(purchaseAccountingMatch, "purchase accounting helper must exist");
-const purchaseAccounting = vm.runInNewContext("(function(){const cents=value=>Math.round((Number(value)||0)*100);return (" + purchaseAccountingMatch[0] + ");})()");
+const purchaseAccounting = extractFunction(purchases, "purchaseAccounting", {
+  cents: value => Math.round((Number(value) || 0) * 100)
+});
 {
   const active = purchaseAccounting({total:0.1+0.2,payments:[{amount:0.1},{amount:0.1}],refunds:[],status:"active"});
   assert.deepEqual({...active}, {paid:0.2, refunded:0, remaining:0.1, netCost:0.3, supplierBalance:0.1}, "supplier balance must use integer cents");
