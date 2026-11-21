@@ -247,7 +247,7 @@
       '<button class="p" onclick="rimbookSavePayrollSettings()">حفظ سياسة دورة الأجور</button></div>';
   };
   const oldSettings = VIEWS.settings;
-  VIEWS.settings = function () { return oldSettings() + window.rimbookWorkforceSettings(); };
+  VIEWS.settings = function () { return oldSettings() + window.rimbookWorkforceSettings() + (typeof langPicker === "function" ? langPicker() : ""); };
 
   TABS.workers=["👷","العمال"];
   TABS.workday=["📅","اليومية"];
