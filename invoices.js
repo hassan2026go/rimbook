@@ -101,6 +101,7 @@ function printInvoice(invId){
   const p = RB.data.profile;
   const s = RB.data.settings;
   const T = invoiceTotals(inv);
+  const P = invoicePaymentSummary(inv);
   const cur = s.currency;
 
   const html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8">
@@ -168,7 +169,7 @@ ${inv.client ? `<p><b>العميل:</b> ${esc(inv.client)}</p>` : ""}
   </table>
 </div>
 
-${inv.paid ? '<div style="text-align:center;margin-top:20px"><span class="paid-stamp">مدفوعة ✅</span></div>' : ""}
+${P.status==="paid" ? '<div style="text-align:center;margin-top:20px"><span class="paid-stamp">مدفوعة بالكامل ✅</span></div>' : '<div style="margin-top:20px;padding:12px;background:#f8fafc;border-radius:8px"><b>حالة السداد:</b> '+(P.status==="partial"?"دفعة جزئية":P.status==="legacy"?"معلّمة مدفوعة سابقاً دون قبض موثق":"غير مسددة")+'<br><b>المقبوض الموثق:</b> '+P.paid.toFixed(2)+' '+cur+'<br><b>المتبقي:</b> '+P.remaining.toFixed(2)+' '+cur+'</div>'}
 
 ${inv.notes ? `<p style="margin-top:20px;padding:12px;background:#f8fafc;border-radius:8px"><b>ملاحظات:</b><br>${esc(inv.notes)}</p>` : ""}
 
