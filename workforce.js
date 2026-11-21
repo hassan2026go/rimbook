@@ -191,13 +191,15 @@
         '<p class="muted">'+safe(w.jobTitle||"دون تخصص")+' · أجر '+wageLabel(w.wageType)+' '+money(w.wageRate)+'</p>' +
         '<p>المستحق '+money(s.due)+' · المدفوع '+money(s.paid)+' · السلف '+money(s.advances)+'</p><h3>الرصيد المتبقي: '+money(s.balance)+'</h3>' +
         (w.projectId?'<p class="muted">المشروع: '+safe(projectName(w.projectId))+'</p>':"") +
-        (w.phone?'<div class="row"><a href="tel:'+safe(w.phone)+'">📞 اتصال</a><a target="_blank" rel="noopener" href="https://wa.me/'+phone+'">واتساب</a></div>':"") +
+        (w.phone?'<div class="row"><a href="tel:'+safe(w.phone)+'">📞 اتصال</a><a target="_blank" rel="noopener" href="https://wa.me/'+phone+'">واتساب</a><a href="sms:'+safe(w.phone)+'">SMS</a><button type="button" onclick="rimbookCopyWorkerContact('+JSON.stringify(w.phone)+')">نسخ الرقم</button></div>':"") +
+        (w.email?'<div class="row"><a href="mailto:'+safe(w.email)+'">البريد الإلكتروني</a><button type="button" onclick="rimbookCopyWorkerContact('+JSON.stringify(w.email)+')">نسخ البريد</button></div>':"") +
         '<div class="row">'+actions+'</div></div>';
     }).join("");
     return '<div class="card"><b style="font-size:17px">👷 إدارة العمال والموظفين</b><p class="muted">ملف مستقل لكل عامل، مرتبط بيومية العمل والمشروع والأجور والدفعات والسلف. الأرشفة تحفظ السجلات ولا تحذفها.</p>' +
       '<div class="grid2"><div class="card">العمال النشطون<h3>'+active.length+'</h3></div><div class="card">المؤرشفون<h3>'+archived.length+'</h3></div></div></div>' +
       '<div class="card"><b>إضافة عامل أو موظف</b><label class="muted">الاسم الكامل</label><input id="wf-name" maxlength="120" placeholder="اسم العامل" style="width:100%;margin:4px 0 10px">' +
       '<label class="muted">رقم الهاتف</label><input id="wf-phone" type="tel" inputmode="tel" placeholder="+..." style="width:100%;margin:4px 0 10px">' +
+      '<label class="muted">البريد الإلكتروني</label><input id="wf-email" type="email" placeholder="example@email.com" style="width:100%;margin:4px 0 10px">'+
       '<label class="muted">التخصص أو المهنة</label><input id="wf-job" maxlength="100" placeholder="مثلاً: كهربائي، نجار، محاسب" style="width:100%;margin:4px 0 10px">' +
       '<label class="muted">نظام الأجر</label><select id="wf-type" style="width:100%;margin:4px 0 10px"><option value="daily">يومي</option><option value="weekly">أسبوعي</option><option value="monthly">شهري</option></select>' +
       '<label class="muted">قيمة الأجر حسب النظام المختار</label><input id="wf-rate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" style="width:100%;margin:4px 0 10px">' +
