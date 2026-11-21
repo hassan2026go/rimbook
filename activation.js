@@ -3,7 +3,7 @@
  const D=RB.data;
  D.profile=Object.assign({name:"",role:"employee",phone:"",email:"",city:"",skills:"",about:""},D.profile||{});
  D.settings=Object.assign({theme:"dark",fs:15,dailyRate:50,otRate:10,currency:"USD",managerPhone:"",enabled:{}},D.settings||{});
- ["items","projects","habits","goals","contacts","invoices"].forEach(k=>{if(!Array.isArray(D[k]))D[k]=[];});
+ ["items","projects","workers","habits","goals","contacts","invoices"].forEach(k=>{if(!Array.isArray(D[k]))D[k]=[];});
  if(!D.settings.enabled)D.settings.enabled={};
  if(!ROLES[D.profile.role])D.profile.role="employee";
  const tabs=["home","projects","agenda","tasks","notes","habits","goals","ledger","contacts","invoices","rates","profile","stats","sync","integrations","settings","about"];
