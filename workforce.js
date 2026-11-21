@@ -247,13 +247,20 @@
       '<button class="p" onclick="rimbookSavePayrollSettings()">حفظ سياسة دورة الأجور</button></div>';
   };
   const oldSettings = VIEWS.settings;
-  VIEWS.settings = function () { return oldSettings() + window.rimbookWorkforceSettings() + (typeof langPicker === "function" ? langPicker() : ""); };
+  VIEWS.settings = function () { let html=oldSettings(); if(RB.data.profile.role==="worker"){html=html.replace(/<div class=card><b>💼 سياسة الأجور والحسابات<\\/b>[\\s\\S]*?<\\/div>/,"");} return html + (RB.data.profile.role==="worker" ? "" : window.rimbookWorkforceSettings()) + (typeof langPicker === "function" ? langPicker() : ""); };
 
   TABS.workers=["👷","العمال"];
   TABS.workday=["📅","اليومية"];
   TABS.payroll=["💰","الأجور"];
-  ROLES.employee.tabs.splice(Math.max(0,ROLES.employee.tabs.indexOf("projects")+1),0,"workers","workday","payroll");
-  ROLES.worker.tabs = ROLES.worker.tabs.filter(tab => tab !== "ledger");
-  VIEWS.workers = VIEWS.workers;
+  TABS.more=["☰","المزيد"];
+  ROLES.employee.tabs=["home","projects","workers","workday","ledger","notebook","more"];
+  ROLES.worker.tabs=["home","voice","notebook","more"];
+  VIEWS.more=function(){
+    const manager=RB.data.profile.role!=="worker";
+    const items=manager
+      ? [["tasks","المهام","check-square"],["payroll","كشف الأجور","wallet"],["contacts","العملاء والموردون","contact-round"],["invoices","الفواتير والإيصالات","receipt"],["rates","العملات وأسعار الصرف","coins"],["stats","التقارير والإحصاء","chart-no-axes-combined"],["profile","الملف الشخصي","user-round"],["settings","الإعدادات","settings"],["sync","التخزين والنسخ الاحتياطي","database"],["integrations","الاتصالات والخدمات","plug"]]
+      : [["tasks","مهامي","check-square"],["profile","ملفي الشخصي","user-round"],["settings","المظهر واللغة","settings"]];
+    return '<div class="card"><b style="font-size:18px">مراكز Rimbook</b><p class="muted">جميع الوظائف الإضافية مرتبة هنا دون ازدحام شريط التنقل.</p><div class="grid2">'+items.map(item=>'<button class="card" type="button" style="min-height:76px;text-align:right" onclick="go(\\''+item[0]+'\\')"><b>'+item[1]+'</b></button>').join("")+'</div></div>';
+  };
   render();
 })();
