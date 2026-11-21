@@ -174,7 +174,7 @@ function bindRimbookDataChannel(channel) {
           rtc.chunkTotal = message.total;
         }
         rtc.chunks[message.index] = String(message.data || "");
-        if (rtc.chunks.every(part => typeof part === "string")) {
+        if (rtc.chunks.filter(part => typeof part === "string").length === rtc.chunkTotal) {
           const complete = rtc.chunks.join("");
           rtc.chunks = []; rtc.chunkTotal = 0;
           const payload = JSON.parse(complete);
