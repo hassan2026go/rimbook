@@ -266,6 +266,23 @@ assert.ok(pro.includes("window.rimbookInvoiceSummary(i).remaining>0") && pro.inc
 assert.ok(workforce.includes('["purchases","المشتريات والمواد"') && workforce.includes('ROLES.worker.tabs=["home","voice","notebook","more"]'), "main navigation must group secondary functions and keep worker access personal");
 
 
+const payrollSummary = extractFunction(workforce, "summary", {
+  workRows:id=>[
+    {id:"w1",d:"2026-10-15",k:"work",workerDue:100},
+    {id:"w1",d:"2026-11-05",k:"worker_payment",workerPaid:80},
+    {id:"w1",d:"2026-11-10",k:"worker_advance",workerAdvance:10},
+    {id:"w1",d:"2026-12-02",k:"worker_payment",workerPaid:20}
+  ]
+});
+{
+  const november=payrollSummary("w1","2026-11");
+  assert.equal(november.due,0,"monthly earned wages must remain attributed to their work month");
+  assert.equal(november.paid,80);
+  assert.equal(november.advances,10);
+  assert.equal(november.balance,10,"the monthly payroll balance must carry forward unpaid prior-month wages");
+  const december=payrollSummary("w1","2026-12");
+  assert.equal(december.balance,-10,"cumulative balances must include later payments and show overpayment if present");
+}
 const calculateWorkerPay = extractFunction(workforce, "calculateWorkerPay");
 {
   const fullDay = calculateWorkerPay("work", 100, 8, 0, 8, 2, 15, true, 50);
