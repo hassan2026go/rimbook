@@ -16,7 +16,7 @@ function parseInvoiceAmount(value){
     remaining:Math.max(0,totalCents-recognizedPaid)/100,
     status:totalCents>0&&paidCents>=totalCents?"paid":paidCents>0?"partial":inv.paid?"legacy":"unpaid",
     paymentRows:rows.length
-  };
+    };
   }
 window.rimbookInvoiceSummary=invoicePaymentSummary;
 
