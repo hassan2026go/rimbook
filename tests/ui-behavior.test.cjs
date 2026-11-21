@@ -12,6 +12,7 @@ const workforce = fs.readFileSync("workforce.js", "utf8");
 const notebook = fs.readFileSync("notebook.js", "utf8");
 const push = fs.readFileSync("push.js", "utf8");
 const backup = fs.readFileSync("backup.js", "utf8");
+const attachmentsSource = fs.readFileSync("attachments.js", "utf8");
 const sync = fs.readFileSync("sync.js", "utf8");
 const purchases = fs.readFileSync("purchases.js", "utf8");
 const contactsSource = fs.readFileSync("contacts.js", "utf8");
@@ -416,5 +417,11 @@ assert.ok(pro.includes("const recent=rows.slice()"), "worker home must show the 
 assert.ok(pro.includes("📋 مهامي") && pro.includes("📒 مفكرتي"), "worker home must provide direct links to assigned tasks and the unified notebook");
 assert.ok(pro.includes("آخر حركاتك هذا الشهر"), "worker home must label the personal activity list clearly");
 
+
+
+assert.ok(attachmentsSource.includes("const saved = RB.transact(data =>"), "attaching a file must commit its record reference through the guarded storage transaction");
+assert.ok(attachmentsSource.includes("if(!saved){") && attachmentsSource.includes("await ATT_DB.del(aid)"), "a newly stored file must be rolled back when its record reference cannot be saved");
+assert.ok(attachmentsSource.indexOf("const saved = RB.transact(data =>") < attachmentsSource.indexOf("await ATT_DB.del(aid);\n    render();"), "deleting an attachment must update the record before deleting the stored blob");
+assert.ok(attachmentsSource.includes("t.onabort = () => finishError(t.error)"), "IndexedDB aborts must reject the attachment operation instead of leaving it pending");
 
 console.log("UI behavior tests passed.");
