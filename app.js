@@ -287,7 +287,7 @@ function normalizeProfileDigits(value) {
   });
 }
 function saveProfileField(key, value) {
-  const allowed = ["name","role","phone","email","city","workplace","jobTitle","birth","emergency","skills","about"];
+  const allowed = ["name","role","workerId","phone","email","city","workplace","jobTitle","birth","emergency","skills","about"];
   if (!allowed.includes(key)) return;
   const v = String(value ?? "").trim();
   if (key === "email" && v && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) {
@@ -300,9 +300,12 @@ function saveProfileField(key, value) {
     }
   }
   if (key === "role" && !["employee","worker"].includes(v)) return;
+  if (key === "workerId" && v && !(RB.data.workers || []).some(worker => String(worker.id) === v && worker.active !== false)) {
+    toast("ملف العامل المحدد غير موجود أو غير نشط"); render(); return;
+  }
   RB.data.profile[key] = key === "phone" ? normalizeProfileDigits(v) : v;
   if (!RB.save()) { toast("تعذر الحفظ: مساحة التخزين في الجهاز ممتلئة"); return; }
-  if (key === "role") render();
+  if (key === "role" || key === "workerId") render();
   if (key === "name") { const heading = $("#profile-display-name"); if (heading) heading.textContent = RB.data.profile.name || "الملف الشخصي"; }
   toast("تم حفظ بيانات الملف الشخصي");
 }
