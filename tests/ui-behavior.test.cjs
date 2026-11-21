@@ -13,6 +13,7 @@ const notebook = fs.readFileSync("notebook.js", "utf8");
 const push = fs.readFileSync("push.js", "utf8");
 const backup = fs.readFileSync("backup.js", "utf8");
 const sync = fs.readFileSync("sync.js", "utf8");
+const purchases = fs.readFileSync("purchases.js", "utf8");
 
 const reversalMatch = voiceLedger.match(/function applyWorkReversal\(data,id,reason,now,newId\)\{[\s\S]*?\n\}/);
 assert.ok(reversalMatch, "financial reversal helper must exist");
@@ -237,5 +238,15 @@ assert.ok(activation.includes("backupZip()") && activation.includes("restoreZip(
 assert.ok(activation.includes("rimbookCoreSettingsView") && activation.includes("مراكز الإعدادات المتقدمة"), "the settings hub must preserve storage/payroll settings and link to advanced centers");
 assert.ok(activation.includes("profile-worker") && app.includes('"workerId"'), "a worker profile must link to its worker record");
 assert.ok(pro.includes("profile.workerId") && voiceLedger.includes("workerId=workerMatch?.id"), "worker personal views and voice records must be associated with the correct worker");
+
+
+assert.ok(purchases.includes("VIEWS.purchases") && purchases.includes("addRimbookPurchase"), "purchases and materials must have a real management screen");
+assert.ok(purchases.includes("addPurchasePayment") && purchases.includes("cancelRimbookPurchase"), "supplier payments and cancellations must be recorded rather than deleting purchases");
+assert.ok(purchases.includes("window.rimbookProjectPurchasesTotal"), "purchases must roll up into project costs");
+assert.ok(app.includes('target.type === "work"') && app.includes("لا يمكن حذف حركة عمل أو حساب"), "financial work records must be protected from hard deletion");
+assert.ok(app.includes("row.status=\"archived\"") && app.includes("الاحتفاظ بجميع سجلاته"), "project archival must preserve linked records");
+assert.ok(pro.includes('id="ptworker"') && workforce.includes("VIEWS.tasks = function"), "tasks must be assignable to workers and filtered in worker view");
+assert.ok(pro.includes("purchasesCost") && pro.includes("supplierBalance"), "project and financial reports must include purchases and supplier balances");
+assert.ok(workforce.includes('["purchases","المشتريات والمواد"') && workforce.includes('ROLES.worker.tabs=["home","voice","notebook","more"]'), "main navigation must group secondary functions and keep worker access personal");
 
 console.log("UI behavior tests passed.");
