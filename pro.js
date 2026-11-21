@@ -27,8 +27,8 @@ window.proAddTask=function(){
 window.proSetTaskFilter=function(f){window.proTaskFilter=f;render();};
 window.proToggleTask=function(id,done){RB.patch(id,{done});render();};
 window.proAddProject=function(){
- const name=$("ppname")?.value.trim();if(!name)return toast("اكتب اسم المشروع");
- const p={id:"p"+Date.now().toString(36),name,color:"#22d3ee",budget:Number($("ppbudget")?.value)||0,due:$("ppdue")?.value||"",status:"active",createdAt:Date.now()};
+ const name=$("ppname")?.value.trim();if(!name)return toast("اكتب اسم المشروع");\n const client=$("ppclient")?.value.trim()||"";const location=$("pplocation")?.value.trim()||"";const description=$("ppdescription")?.value.trim()||"";const startDate=$("ppstart")?.value||today();
+ const p={id:"p"+Date.now().toString(36),name,color:"#22d3ee",client,location,description,startDate,budget:Number($("ppbudget")?.value)||0,due:$("ppdue")?.value||"",status:"active",createdAt:Date.now()};
  if(!RB.transact(data=>{data.projects.push(p);data.activeProject=p.id;}))return;
  render();toast("تم إنشاء المشروع");
 };
@@ -96,7 +96,18 @@ VIEWS.tasks=function(){
 };
 VIEWS.projects=function(){
  const cards=(D.projects||[]).map(p=>{const pr=taskProgress(p.id),w=RB.all("work").filter(x=>x.project===p.id),due=w.reduce((s,x)=>s+(+x.due||0),0),paid=w.reduce((s,x)=>s+(+x.rec||0),0),workersCount=new Set(w.filter(x=>x.workerId).map(x=>String(x.workerId))).size,payroll=w.reduce((s,x)=>s+(Number(x.workerDue)||0),0),expenses=w.reduce((s,x)=>s+(Number(x.expense)||0),0);return '<div class="card"><div class="row" style="justify-content:space-between"><b>'+safe(p.name)+'</b>'+pill(p.status==="archived"?"مؤرشف":p.status==="done"?"مكتمل":"نشط",p.status==="archived"?"bad":p.status==="done"?"ok":"")+'</div><div class="progress"><div style="width:'+pr.percent+'%"></div></div><small class="muted">'+pr.done+' من '+pr.total+' مهام مكتملة'+(p.due?" · الموعد "+safe(p.due):"")+'</small><div class="grid2" style="margin-top:8px"><div><small class="muted">الميزانية</small><b>'+money(p.budget)+'</b></div><div><small class="muted">العمال المرتبطون</small><b>'+workersCount+'</b></div><div><small class="muted">أجور مستحقة</small><b>'+money(payroll)+'</b></div><div><small class="muted">مصروفات المشروع</small><b>'+money(expenses)+'</b></div><div><small class="muted">مستحقات العملاء</small><b>'+money(due)+'</b></div><div><small class="muted">المقبوض</small><b>'+money(paid)+'</b></div></div><div class="row" style="margin-top:8px"><button class="p" onclick="setActiveProject(\''+p.id+'\')">فتح المشروع</button><button onclick="editProject(\''+p.id+'\')">تعديل الاسم</button><button onclick="proProjectStatus(\''+p.id+'\')">'+(p.status==="archived"?"إعادة تنشيط":p.status==="done"?"إعادة فتح":"إنهاء")+'</button><button onclick="delProject(\''+p.id+'\')">أرشفة</button></div></div>';}).join("");
- return '<div class="card"><b>＋ إنشاء مشروع</b><input id="ppname" placeholder="اسم المشروع" style="width:100%;margin:6px 0"><div class="grid2"><input id="ppbudget" type="number" min="0" placeholder="الميزانية"><input id="ppdue" type="date" aria-label="تاريخ التسليم"></div><button class="p" style="margin-top:8px" onclick="proAddProject()">إنشاء المشروع</button></div>'+ (cards||'<div class="card muted">لا توجد مشاريع. أنشئ أول مشروع لتنظيم عملك.</div>');
+ return '<div class="card"><b>＋ إنشاء مشروع</b><input id="ppname" maxlength="160" placeholder="اسم المشروع" style="width:100%;margin:6px 0"><div class="grid2"><input id="ppclient" placeholder="العميل أو صاحب المشروع"><input id="pplocation" placeholder="موقع المشروع"></div><textarea id="ppdescription" rows="2" placeholder="وصف المشروع ونطاق العمل" style="width:100%;margin:6px 0"></textarea><div class="grid2"><input id="ppbudget" type="number" min="0" step="0.01" placeholder="الميزانية"><input id="ppstart" type="date" value="'+today()+'" aria-label="تاريخ البدء"><input id="ppdue" type="date" aria-label="تاريخ التسليم"></div><button class="p" style="margin-top:8px" onclick="proAddProject()">إنشاء المشروع</button></div>'+ (cards||'<div class="card muted">لا توجد مشاريع. أنشئ أول مشروع لتنظيم عملك.</div>');
+};
+window.editProject=function(id){
+ const p=D.projects.find(x=>String(x.id)===String(id));if(!p)return;
+ const name=prompt("اسم المشروع",p.name||"");if(name===null)return;if(!name.trim())return toast("اسم المشروع مطلوب");
+ const client=prompt("العميل أو صاحب المشروع",p.client||"");if(client===null)return;
+ const location=prompt("موقع المشروع",p.location||"");if(location===null)return;
+ const description=prompt("وصف المشروع",p.description||"");if(description===null)return;
+ const budget=prompt("ميزانية المشروع",String(p.budget||0));if(budget===null)return;
+ const amount=Number(budget);if(!Number.isFinite(amount)||amount<0)return toast("أدخل ميزانية صحيحة");
+ if(!RB.transact(data=>{const row=data.projects.find(x=>String(x.id)===String(id));if(row){row.name=name.trim();row.client=client.trim();row.location=location.trim();row.description=description.trim();row.budget=amount;}}))return;
+ render();toast("تم تحديث بيانات المشروع");
 };
 window.proProjectStatus=function(id){const p=D.projects.find(x=>x.id===id);if(!p)return;const next=p.status==="archived"||p.status==="done"?"active":"done";if(!RB.transact(data=>{const row=data.projects.find(x=>x.id===id);if(row)row.status=next;}))return;render();};
 VIEWS.agenda=function(){
