@@ -276,4 +276,9 @@ const purchaseAccounting = extractFunction(purchases, "purchaseAccounting");
   assert.deepEqual({...cancelled}, {paid:60, refunded:20, remaining:0, netCost:40, supplierBalance:0}, "cancelled purchase cost must equal paid minus refunded, with no open supplier liability");
 }
 
+assert.ok(workforce.includes("window.rimbookCalculateWorkerPay = calculateWorkerPay"), "voice and quick-entry screens must use the shared payroll calculator");
+assert.ok(workforce.includes("const duplicate=workRows(worker.id)"), "a worker must not receive duplicate attendance for the same date");
+assert.ok(voiceLedger.includes("window.rimbookCalculateWorkerPay"), "voice and quick entries must calculate worker wages using the shared payroll policy");
+assert.ok(voiceLedger.includes("item.workerDue=pay.workerDue"), "quick worker entries must store the same calculated due as daily attendance");
+
 console.log("UI behavior tests passed.");
