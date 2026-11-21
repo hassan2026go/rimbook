@@ -13,10 +13,16 @@
   const contacts = () => RB.data.contacts || [];
   const purchases = () => (RB.data.purchases || []).slice().sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
   const money = n => Number(n||0).toLocaleString("ar",{minimumFractionDigits:2,maximumFractionDigits:2})+" "+safe(RB.data.settings.currency||"");
-  const paid = p => (p.payments||[]).reduce((sum,x)=>sum+(Number(x.amount)||0),0);
-  const refunded = p => (p.refunds||[]).reduce((sum,x)=>sum+(Number(x.amount)||0),0);
-  const remaining = p => p.status==="cancelled" ? 0 : Math.max(0,(Number(p.total)||0)-paid(p));
-  const netCost = p => p.status==="cancelled" ? Math.max(0,paid(p)-refunded(p)) : Number(p.total)||0;
+  const cents = value => Math.round((Number(value)||0)*100);
+  const moneyValue = value => cents(value)/100;
+  const parseAmount = value => {
+    const normalized=String(value??"").replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/٬/g,"").replace(/٫/g,".").replace(/,/g,".");
+    return Number(normalized);
+  };
+  const paid = p => (p.payments||[]).reduce((sum,x)=>sum+cents(x.amount),0)/100;
+  const refunded = p => (p.refunds||[]).reduce((sum,x)=>sum+cents(x.amount),0)/100;
+  const remaining = p => p.status==="cancelled" ? 0 : Math.max(0,cents(p.total)-cents(paid(p)))/100;
+  const netCost = p => p.status==="cancelled" ? Math.max(0,cents(paid(p))-cents(refunded(p)))/100 : moneyValue(p.total);
 
   window.rimbookProjectPurchasesTotal = id => purchases().filter(p=>String(p.projectId||"")===String(id)).reduce((sum,p)=>sum+netCost(p),0);
 
@@ -27,9 +33,9 @@
 
   window.addRimbookPurchase = function () {
     const item=val("buy-item"),date=val("buy-date")||today(),qty=number("buy-qty"),unitPrice=number("buy-price");
-    const paidNow=number("buy-paid"),projectId=val("buy-project")||null,contactId=val("buy-supplier")||null;
+    const paidNow=parseAmount(val("buy-paid")),projectId=val("buy-project")||null,contactId=val("buy-supplier")||null;
     const supplierName=val("buy-supplier-name")||(contacts().find(c=>String(c.id)===String(contactId))?.name||"");
-    const total=qty*unitPrice;
+    const total=moneyValue(qty*unitPrice);
     if(!item)return toast("اكتب اسم المادة أو المشتريات");
     if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return toast("تحقق من تاريخ الشراء");
     if(!Number.isFinite(qty)||qty<=0||!Number.isFinite(unitPrice)||unitPrice<0)return toast("تحقق من الكمية وسعر الوحدة");
@@ -51,7 +57,7 @@
     if(!row||row.status==="cancelled")return;
     const raw=prompt("المبلغ المدفوع الآن — المتبقي "+remaining(row).toFixed(2),"");
     if(raw===null)return;
-    const amount=Number(String(raw).replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(",","."));
+    const amount=parseAmount(raw);
     if(!Number.isFinite(amount)||amount<=0||amount>remaining(row))return toast("أدخل مبلغاً صحيحاً لا يتجاوز المتبقي");
     const note=prompt("بيان الدفعة (اختياري)","دفعة للمورد");
     if(note===null)return;
@@ -71,7 +77,7 @@
     const paidAmount=paid(row);
     const raw=prompt("المبلغ المسترد من المورد (إن وجد)، المدفوع سابقاً "+paidAmount.toFixed(2),String(paidAmount));
     if(raw===null)return;
-    const refund=Number(String(raw).replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(",","."));
+    const refund=parseAmount(raw);
     if(!Number.isFinite(refund)||refund<0||refund>paidAmount)return toast("تحقق من مبلغ الاسترداد");
     if(!RB.transact(data=>{
       const p=data.purchases.find(x=>String(x.id)===String(id));
