@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "Rimbook - مفكرة شاملة ذكية",
+  "name": "Rimbook - إدارة الأعمال والمشاريع",
   "short_name": "Rimbook",
-  "description": "مفكرة شاملة ذكية بالصوت والمشاريع والمهام",
+  "description": "إدارة المشاريع والعمال واليوميات والأجور والمشتريات والحسابات، مع دعم العمل دون اتصال.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
