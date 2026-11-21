@@ -40,7 +40,7 @@ function customerInvoiceSummary(contact,invoices,contacts) {
     unpaid:summaries.filter(row=>row.status==="unpaid"||row.status==="legacy").length,
     partial:summaries.filter(row=>row.status==="partial").length,
     paidInvoices:summaries.filter(row=>row.status==="paid").length
-  };
+    };
   }
 window.rimbookCustomerInvoiceSummary=customerInvoiceSummary;
 
