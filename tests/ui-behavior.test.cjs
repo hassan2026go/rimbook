@@ -428,4 +428,8 @@ assert.ok(attachmentsSource.includes("t.onabort = () => finishError(t.error)"), 
 assert.ok(backup.includes("const referenced = new Set()") && backup.includes("seen.size !== referenced.size"), "full restore must reject backups with missing or unreferenced attachment payloads");
 assert.ok(backup.includes("!Number.isSafeInteger(item.size)") && backup.includes("item.size !== blob.size"), "full restore must require exact safe attachment sizes");
 
+
+assert.ok(voiceLedger.includes('.replace(/٫/g,".").replace(/٬/g,"")'), "spoken Arabic decimal amounts must be normalized before parsing");
+assert.ok(voiceLedger.includes("Voice attachment cleanup failed") && voiceLedger.includes("تعذر ربط التسجيل بسجل المفكرة"), "failed voice-log writes must clean up the stored audio attachment");
+
 console.log("UI behavior tests passed.");
