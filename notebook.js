@@ -110,9 +110,9 @@
         safe(x.title || label) + '</b><span class="tag">' + label + '</span></div><small class="muted">' +
         safe(x.d || "") + ' · ' + safe((projects().find(p => p.id === x.project) || {}).name || "عام") +
         '</small>' + details + '<div class="row">' +
-        (isNote ? '<button type="button" onclick="editNote(\\'' + safe(x.id) + '\\')">تعديل</button>' :
-          '<button type="button" onclick="notebookEdit(\\'' + safe(x.id) + '\\')">تعديل</button>') +
-        '<button class="danger" type="button" onclick="notebookDelete(\\'' + safe(x.id) + '\\')">حذف</button></div></div>'
+        (isNote ? '<button type="button" onclick="editNote(\'' + safe(x.id) + '\')">تعديل</button>' :
+          '<button type="button" onclick="notebookEdit(\'' + safe(x.id) + '\')">تعديل</button>') +
+        '<button class="danger" type="button" onclick="notebookDelete(\'' + safe(x.id) + '\')">حذف</button></div></div>'
     }).join("");
     return '<div class="card"><b style="font-size:17px">📒 المفكرة والسجل اليومي</b>' +
       '<p class="muted">مكان واحد للملاحظات والمواعيد والتذكيرات والمرفقات، مع ربط السجلات بالمشاريع عند الحاجة.</p>' +
