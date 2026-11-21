@@ -144,14 +144,56 @@ async function shareViaAny(){
 }
 
 /* WebRTC */
-const rtc = { pc: null, dc: null };
-async function rtcInit(){
-  rtc.pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
-  rtc.dc = rtc.pc.createDataChannel("rimbook");
-  rtc.dc.onopen = () => { rtc.dc.send(JSON.stringify(RB.data)); toast("✅ أرسلنا البيانات"); };
-  rtc.dc.onmessage = e => {
-    try { RB.replace(JSON.parse(e.data)); render(); toast("✅ استقبلنا البيانات"); } catch(_){}
+const rtc = { pc: null, dc: null, shouldSend: false, chunks: [], chunkTotal: 0 };
+function bindRimbookDataChannel(channel) {
+  rtc.dc = channel;
+  channel.onopen = async () => {
+    if (!rtc.shouldSend) return;
+    try {
+      const payload = await window.collectRimbookBackup();
+      const serialized = JSON.stringify(payload);
+      const chunkSize = 12000;
+      const total = Math.ceil(serialized.length / chunkSize);
+      for (let index = 0; index < total; index++) {
+        channel.send(JSON.stringify({
+          type: "rimbook-backup-chunk", index, total,
+          data: serialized.slice(index * chunkSize, (index + 1) * chunkSize)
+        }));
+      }
+      toast("تم إرسال النسخة والملفات المرفقة عبر الاتصال المباشر");
+    } catch (e) { toast("تعذر تجهيز النقل: " + (e.message || "خطأ غير معروف")); }
   };
+  channel.onmessage = async event => {
+    try {
+      const message = JSON.parse(event.data);
+      if (message && message.type === "rimbook-backup-chunk") {
+        if (!Number.isInteger(message.index) || !Number.isInteger(message.total) ||
+            message.index < 0 || message.total < 1 || message.total > 100000) return;
+        if (rtc.chunkTotal !== message.total) {
+          rtc.chunks = new Array(message.total);
+          rtc.chunkTotal = message.total;
+        }
+        rtc.chunks[message.index] = String(message.data || "");
+        if (rtc.chunks.every(part => typeof part === "string")) {
+          const complete = rtc.chunks.join("");
+          rtc.chunks = []; rtc.chunkTotal = 0;
+          const payload = JSON.parse(complete);
+          await window.restoreRimbookBackup(payload);
+          toast("تم استلام واستعادة النسخة والملفات المرفقة");
+        }
+        return;
+      }
+      if (window.restoreRimbookBackup) await window.restoreRimbookBackup(message);
+      else { RB.replace(message); render(); }
+      toast("تم استلام البيانات");
+    } catch (e) { toast("فشل استلام النسخة أو أن بياناتها غير صالحة"); }
+  };
+}
+async function rtcInit() {
+  rtc.pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+  rtc.pc.ondatachannel = event => bindRimbookDataChannel(event.channel);
+  const channel = rtc.pc.createDataChannel("rimbook");
+  bindRimbookDataChannel(channel);
 }
 async function rtcCreateOffer(){
   if(!rtc.pc) await rtcInit();
