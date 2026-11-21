@@ -220,12 +220,14 @@ function addProject(){
 }
 function setActiveProject(pid){ if (!RB.transact(d => { d.activeProject = pid || null; })) return; render(); }
 function delProject(pid){
-  if(!confirm("حذف المشروع؟")) return;
+  const project=RB.data.projects.find(p=>String(p.id)===String(pid));
+  if(!project)return;
+  if(!confirm("أرشفة المشروع؟ ستبقى جميع المهام واليوميات والحسابات والفواتير والمرفقات محفوظة دون حذف.")) return;
   if (!RB.transact(d => {
-    d.projects = d.projects.filter(p => p.id !== pid);
-    d.items = d.items.filter(x => x.project !== pid);
+    const row=d.projects.find(p=>String(p.id)===String(pid));
+    if(row){row.status="archived";row.archivedAt=Date.now();}
   })) return;
-  render();
+  render();toast("تمت أرشفة المشروع مع الاحتفاظ بجميع سجلاته");
 }
 
 /* ===== الحوسبة الصوتية ===== */
