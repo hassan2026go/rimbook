@@ -13,7 +13,7 @@
   const val = id => ($id(id)?.value || "").trim();
   const num = id => Number(val(id));
   const today = () => iso(new Date());
-  const validDate = value => { if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(value))return false; const date=new Date(value+"T00:00:00Z"); return Number.isFinite(date.getTime()) && date.toISOString().slice(0,10)===value; };
+  const validDate = value => { if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return false; const date=new Date(value+"T00:00:00Z"); return Number.isFinite(date.getTime()) && date.toISOString().slice(0,10)===value; };
   const safe = value => esc(String(value ?? ""));
   const workers = () => (RB.data.workers || []).slice().sort((a,b) => String(a.name).localeCompare(String(b.name), "ar"));
   const projects = () => RB.data.projects || [];
@@ -127,7 +127,7 @@
     const date = val("wd-date") || today(), status = val("wd-status");
     const planned = Number(RB.data.settings.normalHoursPerDay) || 8;
     const normalHours = num("wd-hours"), lateHours = num("wd-late"), otHours = num("wd-ot");
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return toast("تحقق من التاريخ");
+    if (!validDate(date)) return toast("تحقق من التاريخ وصحته في التقويم");
     if (!["work","holiday","absence"].includes(status)) return toast("اختر حالة الدوام");
     if (![normalHours,lateHours,otHours].every(Number.isFinite) || normalHours < 0 || lateHours < 0 || otHours < 0 || normalHours > planned || lateHours > normalHours || otHours > 24) {
       return toast("تحقق من الساعات: الساعات العادية لا تتجاوز ساعات الدوام المعتمدة، والتأخير لا يتجاوز ساعات العمل");
