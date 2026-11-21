@@ -312,13 +312,15 @@ const invoicePaymentSummary = extractFunction(invoiceCode, "invoicePaymentSummar
   const totals=invoiceTotals({items:[{qty:3,price:0.1},{qty:2,price:0.2}],tax:5,discount:0});
   assert.deepEqual({...totals},{sub:0.7,tax:0.04,disc:0,total:0.74},"invoice totals must round to cents without floating-point drift");
   const invoice={id:"inv-1",items:[{qty:2,price:50}],paid:false};
-  assert.deepEqual({...invoicePaymentSummary(invoice)},{total:100,paid:0,remaining:100,status:"unpaid",paymentRows:0});
+  assert.deepEqual({...invoicePaymentSummary(invoice)},{total:100,paid:0,remaining:100,overpaid:0,status:"unpaid",paymentRows:0});
   invoiceLedgerRows=[{invoiceId:"inv-1",rec:25}];
-  assert.deepEqual({...invoicePaymentSummary(invoice)},{total:100,paid:25,remaining:75,status:"partial",paymentRows:1},"partial receipts must reduce only the matching invoice balance");
+  assert.deepEqual({...invoicePaymentSummary(invoice)},{total:100,paid:25,remaining:75,overpaid:0,status:"partial",paymentRows:1},"partial receipts must reduce only the matching invoice balance");
   invoiceLedgerRows=[{invoiceId:"inv-1",rec:100}];
-  assert.deepEqual({...invoicePaymentSummary(invoice)},{total:100,paid:100,remaining:0,status:"paid",paymentRows:1},"full receipts must close the invoice");
+  assert.deepEqual({...invoicePaymentSummary(invoice)},{total:100,paid:100,remaining:0,overpaid:0,status:"paid",paymentRows:1},"full receipts must close the invoice");
   invoiceLedgerRows=[{invoiceId:"inv-1",rec:100},{invoiceId:"inv-1",rec:-100}];
-  assert.deepEqual({...invoicePaymentSummary(invoice)},{total:100,paid:0,remaining:100,status:"unpaid",paymentRows:2},"reversing a receipt must restore the invoice balance");
+  assert.deepEqual({...invoicePaymentSummary(invoice)},{total:100,paid:0,remaining:100,overpaid:0,status:"unpaid",paymentRows:2},"reversing a receipt must restore the invoice balance");
+  invoiceLedgerRows=[{invoiceId:"inv-1",rec:110}];
+  assert.equal(invoicePaymentSummary(invoice).overpaid,10,"excess customer receipts must be surfaced instead of silently hidden");
 }
 const purchaseAccounting = extractFunction(purchases, "purchaseAccounting", {
   cents: value => Math.round((Number(value) || 0) * 100)
