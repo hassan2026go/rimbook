@@ -19,10 +19,22 @@
     const normalized=String(value??"").replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/٬/g,"").replace(/٫/g,".").replace(/,/g,".");
     return Number(normalized);
   };
-  const paid = p => (p.payments||[]).reduce((sum,x)=>sum+cents(x.amount),0)/100;
-  const refunded = p => (p.refunds||[]).reduce((sum,x)=>sum+cents(x.amount),0)/100;
-  const remaining = p => p.status==="cancelled" ? 0 : Math.max(0,cents(p.total)-cents(paid(p)))/100;
-  const netCost = p => p.status==="cancelled" ? Math.max(0,cents(paid(p))-cents(refunded(p)))/100 : moneyValue(p.total);
+  function purchaseAccounting(p) {
+    const paidCents=(p.payments||[]).reduce((sum,x)=>sum+cents(x.amount),0);
+    const refundedCents=(p.refunds||[]).reduce((sum,x)=>sum+cents(x.amount),0);
+    const totalCents=cents(p.total);
+    const remainingCents=p.status==="cancelled"?0:Math.max(0,totalCents-paidCents);
+    const netCostCents=p.status==="cancelled"?Math.max(0,paidCents-refundedCents):totalCents;
+    return {
+      paid:paidCents/100, refunded:refundedCents/100,
+      remaining:remainingCents/100, netCost:netCostCents/100,
+      supplierBalance:remainingCents/100
+    };
+  }
+  const paid = p => purchaseAccounting(p).paid;
+  const refunded = p => purchaseAccounting(p).refunded;
+  const remaining = p => purchaseAccounting(p).remaining;
+  const netCost = p => purchaseAccounting(p).netCost;
 
   window.rimbookProjectPurchasesTotal = id => purchases().filter(p=>String(p.projectId||"")===String(id)).reduce((sum,p)=>sum+netCost(p),0);
 
