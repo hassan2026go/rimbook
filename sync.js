@@ -196,6 +196,7 @@ async function rtcInit() {
   bindRimbookDataChannel(channel);
 }
 async function rtcCreateOffer(){
+  rtc.shouldSend = true;
   if(!rtc.pc) await rtcInit();
   const offer = await rtc.pc.createOffer();
   await rtc.pc.setLocalDescription(offer);
@@ -205,6 +206,7 @@ async function rtcCreateOffer(){
   alert("كود الاتصال (أرسله للجهاز الآخر):\n\n" + code);
 }
 async function rtcAcceptOffer(){
+  rtc.shouldSend = false;
   const code = prompt("الصق كود الاتصال:");
   if(!code) return;
   try {
