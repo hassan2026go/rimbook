@@ -26,7 +26,7 @@ function applyWorkReversal(data,id,reason,now,newId){
   if(!Number.isFinite(value))return {ok:false,error:"يوجد رقم غير صالح في الحركة؛ لم يتغير أي سجل"};
   signed[key]=-value;
  }
- const reversal={type:"work",k:original.k,d:original.d,ds:"قيد عكسي للحركة "+String(original.ds||original.k||"المالية"),project:original.project||null,workerId:original.workerId||null,person:original.person||"",...signed,isReversal:true,reversalOf:original.id,correctionReason:why,created:now,id:newId};
+ const reversal={type:"work",k:original.k,d:original.d,ds:"قيد عكسي للحركة "+String(original.ds||original.k||"المالية"),project:original.project||null,workerId:original.workerId||null,person:original.person||"",invoiceId:original.invoiceId||null,invoiceNumber:original.invoiceNumber||"",...signed,isReversal:true,reversalOf:original.id,correctionReason:why,created:now,id:newId};
  original.reversedBy=newId;original.reversalReason=why;original.reversedAt=now;items.push(reversal);
  return {ok:true,originalId:original.id,reversalId:newId};
 }
