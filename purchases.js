@@ -32,6 +32,29 @@
       supplierBalance:remainingCents/100
     };
   }
+  function supplierSummary(contactId, rows) {
+    const linked=(rows||[]).filter(p=>String(p.contactId||"")===String(contactId||""));
+    const totals=linked.reduce((sum,p)=>{
+      const a=purchaseAccounting(p);
+      sum.totalCents+=cents(p.total);
+      sum.paidCents+=cents(a.paid);
+      sum.refundedCents+=cents(a.refunded);
+      sum.netCostCents+=cents(a.netCost);
+      sum.outstandingCents+=cents(a.supplierBalance);
+      if(p.status==="cancelled")sum.cancelled++;
+      return sum;
+    },{totalCents:0,paidCents:0,refundedCents:0,netCostCents:0,outstandingCents:0,cancelled:0});
+    return {
+      purchases:linked.length,
+      total:totals.totalCents/100,
+      paid:totals.paidCents/100,
+      refunded:totals.refundedCents/100,
+      netCost:totals.netCostCents/100,
+      outstanding:totals.outstandingCents/100,
+      cancelled:totals.cancelled
+    };
+  }
+  window.rimbookSupplierSummary = contactId => supplierSummary(contactId,RB.data.purchases||[]);
   window.rimbookPurchaseAccounting = purchaseAccounting;
   const paid = p => purchaseAccounting(p).paid;
   const refunded = p => purchaseAccounting(p).refunded;
