@@ -260,6 +260,7 @@ assert.ok(activation.includes('row.status="archived"') && activation.includes("a
 assert.ok(!activation.includes("data.projects=data.projects.filter(p=>p.id!==id)"), "archiving must not hard-delete projects");
 assert.ok(pro.includes('id="ptworker"') && workforce.includes("VIEWS.tasks = function"), "tasks must be assignable to workers and filtered in worker view");
 assert.ok(pro.includes("purchasesCost") && pro.includes("supplierBalance"), "project and financial reports must include purchases and supplier balances");
+assert.ok(pro.includes("window.rimbookInvoiceSummary(i).remaining>0") && pro.includes("invoiceOutstanding="), "unpaid invoice balances must be reflected separately in project receivables without double-counting work-ledger dues");
 assert.ok(workforce.includes('["purchases","المشتريات والمواد"') && workforce.includes('ROLES.worker.tabs=["home","voice","notebook","more"]'), "main navigation must group secondary functions and keep worker access personal");
 
 
