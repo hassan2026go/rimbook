@@ -101,8 +101,13 @@ function voiceLedgerSaveQuick(kind,amount,workDetails){
  if(D.profile?.role==="worker"&&!worker)return toast("اربط ملف العامل من صفحة الملف الشخصي أولاً"),false;
  if(worker&&["work","holiday"].includes(kind)&&D.items.some(row=>row.type==="work"&&String(row.workerId||"")===String(worker.id)&&row.d===today()&&["work","holiday","absence"].includes(row.k)&&!row.isReversal&&!row.reversedBy))
   return toast("يوجد سجل دوام لهذا العامل اليوم. صحّح السجل السابق بقيد عكسي قبل التسجيل مرة أخرى."),false;
- const otHours=kind==="work"?Math.max(0,Number(workDetails?.otHours)||0):0;
- const normalHours=kind==="work"?Math.max(0,Number(workDetails?.normalHours)||Number(D.settings.normalHoursPerDay)||8):0;
+ const planned=Number(D.settings.normalHoursPerDay)||8;
+ const rawOt=kind==="work"?Number(workDetails?.otHours??0):0;
+ const rawNormal=kind==="work"?Number(workDetails?.normalHours??planned):0;
+ if(kind==="work"&&(!Number.isFinite(rawNormal)||rawNormal<=0||rawNormal>planned||!Number.isFinite(rawOt)||rawOt<0||rawOt>24))
+  return toast("تحقق من الساعات: الساعات العادية لا تتجاوز ساعات الدوام المعتمدة، والإضافي بين صفر و24 ساعة"),false;
+ const otHours=kind==="work"?rawOt:0;
+ const normalHours=kind==="work"?rawNormal:0;
  const overtimeEnabled=!!D.settings.overtimeEnabled;
  const otRate=worker&&worker.overtimeRate!=null?Math.max(0,Number(worker.overtimeRate)||0):Math.max(0,Number(D.settings.otRate)||0);
  const overtimePay=kind==="work"&&overtimeEnabled?otHours*otRate:0;
@@ -127,9 +132,10 @@ function voiceLedgerSaveQuick(kind,amount,workDetails){
  return true;
 }
 window.voiceLedgerWorkSubmit=function(){
- const normal=Number(document.getElementById("workNormalHours")?.value||D.settings.normalHoursPerDay||8);
+ const planned=Number(D.settings.normalHoursPerDay)||8;
+ const normal=Number(document.getElementById("workNormalHours")?.value||planned);
  const overtime=Number(document.getElementById("workOvertimeHours")?.value||0);
- if(!Number.isFinite(normal)||normal<=0||normal>24||!Number.isFinite(overtime)||overtime<0||overtime>24){toast("تحقق من عدد ساعات العمل");return;}
+ if(!Number.isFinite(normal)||normal<=0||normal>planned||!Number.isFinite(overtime)||overtime<0||overtime>24){toast("تحقق من الساعات: الساعات العادية لا تتجاوز ساعات الدوام المعتمدة، والإضافي بين صفر و24 ساعة");return;}
  if(overtime>0&&!D.settings.overtimeEnabled){toast("فعّل سياسة العمل الإضافي من الإعدادات أولاً");return;}
  if(voiceLedgerSaveQuick("work",0,{normalHours:normal,otHours:overtime})) document.getElementById("voiceWorkDialog")?.remove();
 };
