@@ -14,6 +14,7 @@ const push = fs.readFileSync("push.js", "utf8");
 const backup = fs.readFileSync("backup.js", "utf8");
 const sync = fs.readFileSync("sync.js", "utf8");
 const purchases = fs.readFileSync("purchases.js", "utf8");
+const contactsSource = fs.readFileSync("contacts.js", "utf8");
 const invoiceCode = fs.readFileSync("invoices.js", "utf8");
 
 const reversalMatch = voiceLedger.match(/function applyWorkReversal\(data,id,reason,now,newId\)\{[\s\S]*?\n\}/);
@@ -360,7 +361,7 @@ const appendPurchaseRefund = extractFunction(purchases, "appendPurchaseRefund", 
   ]);
   assert.deepEqual({...suppliers},{purchases:3,total:190,paid:105,refunded:10,netCost:170,outstanding:75,cancelled:1},"supplier account must aggregate only purchases linked to that contact and reuse cancellation/refund accounting");
 }
-assert.ok(purchases.includes("window.rimbookSupplierSummary") && contacts.includes("window.rimbookSupplierSummary(c.id)"), "supplier contact cards must show balances from the shared purchasing ledger");
+assert.ok(purchases.includes("window.rimbookSupplierSummary") && contactsSource.includes("window.rimbookSupplierSummary(c.id)"), "supplier contact cards must show balances from the shared purchasing ledger");
 assert.ok(pro.includes("window.rimbookPurchaseAccounting?window.rimbookPurchaseAccounting(p)") , "financial reports must reuse purchase-ledger accounting");
 
 assert.ok(workforce.includes("window.rimbookCalculateWorkerPay = calculateWorkerPay"), "voice and quick-entry screens must use the shared payroll calculator");
