@@ -278,7 +278,7 @@
   VIEWS.tasks = function () {
     if (RB.data.profile.role !== "worker") return managerTasksView();
     const workerId = RB.data.profile.workerId;
-    if (!workerId) return '<div class="card"><b>مهامي</b><p class="muted">اربط ملف العامل من الملف الشخصي حتى تظهر المهام المسندة إليك.</p><button class="p" onclick="go(\\'profile\\')">ربط ملف العامل</button></div>';
+    if (!workerId) return '<div class="card"><b>مهامي</b><p class="muted">اربط ملف العامل من الملف الشخصي حتى تظهر المهام المسندة إليك.</p><button class="p" onclick="go(\'profile\')">ربط ملف العامل</button></div>';
     const rows = RB.all("task").filter(task => String(task.workerId || "") === String(workerId))
       .sort((a,b)=>(a.done-b.done)||String(a.due||"9999").localeCompare(String(b.due||"9999")));
     return '<div class="card"><b>📋 مهامي المسندة</b><p class="muted">تظهر هنا المهام المسندة إلى ملفك فقط. يمكنك تحديث حالة الإنجاز.</p>' +
@@ -296,7 +296,7 @@
     const items=manager
       ? [["tasks","المهام","check-square"],["payroll","كشف الأجور","wallet"],["contacts","العملاء والموردون","contact-round"],["purchases","المشتريات والمواد","package"],["invoices","الفواتير والإيصالات","receipt"],["rates","العملات وأسعار الصرف","coins"],["stats","التقارير والإحصاء","chart-no-axes-combined"],["profile","الملف الشخصي","user-round"],["settings","الإعدادات","settings"],["sync","التخزين والنسخ الاحتياطي","database"],["integrations","الاتصالات والخدمات","plug"]]
       : [["tasks","مهامي","check-square"],["profile","ملفي الشخصي","user-round"],["settings","المظهر واللغة","settings"]];
-    return '<div class="card"><b style="font-size:18px">مراكز Rimbook</b><p class="muted">جميع الوظائف الإضافية مرتبة هنا دون ازدحام شريط التنقل.</p><div class="grid2">'+items.map(item=>'<button class="card" type="button" style="min-height:76px;text-align:right" onclick="go(\\''+item[0]+'\\')"><b>'+item[1]+'</b></button>').join("")+'</div></div>';
+    return '<div class="card"><b style="font-size:18px">مراكز Rimbook</b><p class="muted">جميع الوظائف الإضافية مرتبة هنا دون ازدحام شريط التنقل.</p><div class="grid2">'+items.map(item=>'<button class="card" type="button" style="min-height:76px;text-align:right" onclick="go(\''+item[0]+'\')"><b>'+item[1]+'</b></button>').join("")+'</div></div>';
   };
   render();
 })();
