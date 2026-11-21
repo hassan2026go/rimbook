@@ -58,15 +58,16 @@
   function wageLabel(type) { return ({daily:"يومي",weekly:"أسبوعي",monthly:"شهري"})[type] || "يومي"; }
 
   window.rimbookAddWorker = function () {
-    const name = val("wf-name"), phone = digits(val("wf-phone")), jobTitle = val("wf-job");
+    const name = val("wf-name"), phone = digits(val("wf-phone")), email = val("wf-email"), jobTitle = val("wf-job");
     const wageType = val("wf-type"), wageRate = num("wf-rate"), overtimeRate = num("wf-ot");
     if (!name) return toast("اكتب اسم العامل");
     if (!["daily","weekly","monthly"].includes(wageType)) return toast("اختر طريقة الأجر");
     if (!Number.isFinite(wageRate) || wageRate < 0) return toast("أدخل أجراً صحيحاً");
     if (phone && phone.replace(/\D/g,"").length < 7) return toast("تحقق من رقم الهاتف");
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return toast("تحقق من البريد الإلكتروني");
     const worker = {
       id: "w" + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-      name, phone, jobTitle, wageType, wageRate,
+      name, phone, email, jobTitle, wageType, wageRate,
       overtimeRate: Number.isFinite(overtimeRate) && overtimeRate >= 0 ? overtimeRate : null,
       projectId: val("wf-project") || null, notes: val("wf-notes"),
       active: true, createdAt: Date.now()
@@ -85,9 +86,11 @@
     if (phone === null) return;
     const jobTitle = prompt("التخصص أو المهنة", worker.jobTitle || "");
     if (jobTitle === null) return;
+    const email = prompt("البريد الإلكتروني", worker.email || "");
+    if (email === null) return;
     if (!RB.transact(data => {
       const row = data.workers.find(w => String(w.id) === String(id));
-      if (row) { row.name=name.trim(); row.phone=digits(phone); row.jobTitle=jobTitle.trim(); }
+      if (row) { row.name=name.trim(); row.phone=digits(phone); row.jobTitle=jobTitle.trim(); row.email=email.trim(); }
     })) return;
     render(); toast("تم تحديث ملف العامل");
   };
@@ -136,6 +139,11 @@
     if (!RB.add(row)) return;
     render();
     toast("تم تسجيل " + labels[status] + " للعامل " + worker.name + (otHours && !overtimeEnabled ? "؛ سُجلت ساعات الإضافي دون أجر لأن سياسة الإضافي متوقفة" : ""));
+  };
+
+  window.rimbookCopyWorkerContact = async function (value) {
+    try { await navigator.clipboard.writeText(String(value || "")); toast("تم نسخ بيانات الاتصال"); }
+    catch (e) { toast("تعذر النسخ؛ انسخ البيانات يدوياً"); }
   };
 
   window.rimbookWorkerMoney = function (id, kind) {
