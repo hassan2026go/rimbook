@@ -280,7 +280,7 @@
   VIEWS.more=function(){
     const manager=RB.data.profile.role!=="worker";
     const items=manager
-      ? [["tasks","المهام","check-square"],["payroll","كشف الأجور","wallet"],["contacts","العملاء والموردون","contact-round"],["invoices","الفواتير والإيصالات","receipt"],["rates","العملات وأسعار الصرف","coins"],["stats","التقارير والإحصاء","chart-no-axes-combined"],["profile","الملف الشخصي","user-round"],["settings","الإعدادات","settings"],["sync","التخزين والنسخ الاحتياطي","database"],["integrations","الاتصالات والخدمات","plug"]]
+      ? [["tasks","المهام","check-square"],["payroll","كشف الأجور","wallet"],["contacts","العملاء والموردون","contact-round"],["purchases","المشتريات والمواد","package"],["invoices","الفواتير والإيصالات","receipt"],["rates","العملات وأسعار الصرف","coins"],["stats","التقارير والإحصاء","chart-no-axes-combined"],["profile","الملف الشخصي","user-round"],["settings","الإعدادات","settings"],["sync","التخزين والنسخ الاحتياطي","database"],["integrations","الاتصالات والخدمات","plug"]]
       : [["tasks","مهامي","check-square"],["profile","ملفي الشخصي","user-round"],["settings","المظهر واللغة","settings"]];
     return '<div class="card"><b style="font-size:18px">مراكز Rimbook</b><p class="muted">جميع الوظائف الإضافية مرتبة هنا دون ازدحام شريط التنقل.</p><div class="grid2">'+items.map(item=>'<button class="card" type="button" style="min-height:76px;text-align:right" onclick="go(\\''+item[0]+'\\')"><b>'+item[1]+'</b></button>').join("")+'</div></div>';
   };
