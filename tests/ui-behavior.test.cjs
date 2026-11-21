@@ -229,4 +229,5 @@ assert.ok(activation.includes("تنزيل نسخة كاملة JSON") && activati
 assert.ok(voiceLedger.includes("window.voiceAudioStart") && voiceLedger.includes("new MediaRecorder"), "the worker voice log must record original microphone audio");
 assert.ok(voiceLedger.includes("window.voiceAudioPlay") && voiceLedger.includes("voice-audio-"), "the worker voice log must support playback of saved audio");
 assert.ok(voiceLedger.includes("attachments:[{aid,name,type,size:blob.size}]"), "recorded audio must be linked to the backup attachment system");
-\nconsole.log("UI behavior tests passed.");
+
+console.log("UI behavior tests passed.");
