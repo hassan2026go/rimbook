@@ -20,7 +20,7 @@ window.proAddTask=function(){
  const title=$("ptitle")?.value.trim(); if(!title)return toast("اكتب عنوان المهمة");
  const projectSelect=$("pproject");
  const project=projectSelect?(projectSelect.value||null):(D.activeProject||null);
- const row=RB.add({type:"task",title,due:$("pdue")?.value||"",priority:$("ppriority")?.value||"normal",project,done:false,created:Date.now()});
+ const row=RB.add({type:"task",title,due:$("pdue")?.value||"",priority:$("ppriority")?.value||"normal",project,workerId:$("#ptworker")?.value||null,done:false,created:Date.now()});
  if(!row)return;
  render();toast("أضيفت المهمة");
 };
@@ -44,7 +44,7 @@ window.proFilterTaskRows=function(){
 function taskRow(t){
  const late=isLate(t),priority={high:["عالية","bad"],normal:["متوسطة",""],low:["منخفضة",""]}[t.priority]||["عادية",""];
  const search=(t.title+" "+projectName(t.project)).toLocaleLowerCase();
- return '<div class="item" data-pro-task data-search="'+safe(search).toLocaleLowerCase()+'" data-done="'+(t.done?"1":"0")+'" data-late="'+(late?"1":"0")+'" data-due="'+safe(t.due||"")+'"><input type="checkbox" '+(t.done?"checked":"")+' onchange="proToggleTask(\''+t.id+'\',this.checked)"><span style="min-width:0"><b>'+safe(t.title)+'</b><br><small class="muted">'+(t.due?safe(t.due):"بلا موعد")+' · '+safe(projectName(t.project))+' · '+pill(priority[0],priority[1])+(late?" "+pill("متأخرة","bad"):"")+'</small></span><button onclick="editTask(\''+t.id+'\')" aria-label="تعديل">✏️</button><button class="danger" onclick="delItem(\''+t.id+'\')" aria-label="حذف">🗑</button></div>';
+ return '<div class="item" data-pro-task data-search="'+safe(search).toLocaleLowerCase()+'" data-done="'+(t.done?"1":"0")+'" data-late="'+(late?"1":"0")+'" data-due="'+safe(t.due||"")+'"><input type="checkbox" '+(t.done?"checked":"")+' onchange="proToggleTask(\''+t.id+'\',this.checked)"><span style="min-width:0"><b>'+safe(t.title)+'</b><br><small class="muted">'+(t.due?safe(t.due):"بلا موعد")+' · '+safe(projectName(t.project))+(t.workerId?" · "+safe((D.workers||[]).find(w=>String(w.id)===String(t.workerId))?.name||"عامل"):"")+' · '+pill(priority[0],priority[1])+(late?" "+pill("متأخرة","bad"):"")+'</small></span><button onclick="editTask(\''+t.id+'\')" aria-label="تعديل">✏️</button><button class="danger" onclick="delItem(\''+t.id+'\')" aria-label="حذف">🗑</button></div>';
 }
 VIEWS.home=function(){
  const profile=D.profile||{};
@@ -91,7 +91,7 @@ VIEWS.home=function(){
 VIEWS.tasks=function(){
  const list=tasks().slice().sort((a,b)=>(a.done-b.done)||(String(a.due||"9999").localeCompare(String(b.due||"9999"))));
  const filters=[["open","مفتوحة"],["today","اليوم"],["late","متأخرة"],["done","منجزة"],["all","الكل"]];
- return '<div class="card"><b>إدارة المهام</b><div style="display:grid;gap:8px;margin-top:8px"><input id="ptitle" placeholder="عنوان المهمة..." maxlength="180"><div class="grid2"><input id="pdue" type="date" value="'+today()+'"><select id="ppriority"><option value="normal">أولوية متوسطة</option><option value="high">أولوية عالية</option><option value="low">أولوية منخفضة</option></select></div><select id="pproject"><option value="">دون مشروع</option>'+(D.projects||[]).map(p=>'<option value="'+safe(p.id)+'" '+(D.activeProject===p.id?"selected":"")+'>'+safe(p.name)+'</option>').join("")+'</select><button class="p" onclick="proAddTask()">حفظ المهمة</button></div></div>'+
+ return '<div class="card"><b>إدارة المهام</b><div style="display:grid;gap:8px;margin-top:8px"><input id="ptitle" placeholder="عنوان المهمة..." maxlength="180"><div class="grid2"><input id="pdue" type="date" value="'+today()+'"><select id="ppriority"><option value="normal">أولوية متوسطة</option><option value="high">أولوية عالية</option><option value="low">أولوية منخفضة</option></select></div><select id="pproject"><option value="">دون مشروع</option>'+(D.projects||[]).map(p=>'<option value="'+safe(p.id)+'" '+(D.activeProject===p.id?"selected":"")+'>'+safe(p.name)+'</option>').join("")+'</select><select id="ptworker"><option value="">غير مسند لعامل</option>'+(D.workers||[]).filter(w=>w.active!==false).map(w=>'<option value="'+safe(w.id)+'">'+safe(w.name)+'</option>').join("")+'</select><button class="p" onclick="proAddTask()">حفظ المهمة</button></div></div>'+
  '<div class="card"><div class="row" style="justify-content:space-between"><b>قائمة المهام ('+list.length+')</b><input id="proTaskSearch" oninput="proFilterTaskRows()" placeholder="ابحث في المهام..." style="width:48%"></div><div class="strip" style="margin:10px 0">'+filters.map(f=>'<button class="'+(window.proTaskFilter===f[0]?"on":"")+'" onclick="proSetTaskFilter(\''+f[0]+'\')">'+f[1]+'</button>').join("")+'</div>'+(list.map(taskRow).join("")||'<p class="muted">لا توجد مهام بعد.</p>')+'</div>';
 };
 VIEWS.projects=function(){
