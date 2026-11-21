@@ -9,6 +9,7 @@ let pending=null, listening=false, audioRecorder=null, audioChunks=[], audioStre
 const normalize=s=>String(s||"").toLowerCase()
  .replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d))
  .replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+ .replace(/[\u064B-\u065F\u0670]/g,"").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي")
  .replace(/[،,]/g," ").replace(/\s+/g," ").trim();
 function applyWorkReversal(data,id,reason,now,newId){
  const items=Array.isArray(data?.items)?data.items:null;
