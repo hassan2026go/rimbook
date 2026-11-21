@@ -40,6 +40,17 @@
     if (worker.wageType === "monthly") return rate / Math.max(1, Number(RB.data.settings.payrollDaysPerMonth) || 26);
     return rate;
   }
+  function calculateWorkerPay(status,daily,normalHours,lateHours,plannedHours,overtimeHours,overtimeRate,overtimeEnabled,holidayPercent) {
+    const planned=Math.max(0.01,Number(plannedHours)||8);
+    const base=status==="work" ? (Number(daily)||0)*Math.max(0,(Number(normalHours)||0)-(Number(lateHours)||0))/planned
+      : status==="holiday" ? (Number(daily)||0)*Math.min(100,Math.max(0,Number(holidayPercent)||0))/100 : 0;
+    const overtimePay=status==="work"&&overtimeEnabled ? (Number(overtimeHours)||0)*(Number(overtimeRate)||0) : 0;
+    return {
+      base:Math.round(base*100)/100,
+      overtimePay:Math.round(overtimePay*100)/100,
+      workerDue:Math.round(Math.max(0,base+overtimePay)*100)/100
+    };
+  }
   window.rimbookWorkerDailyRate = function (id) {
     const worker = workers().find(w => String(w.id) === String(id));
     return worker ? workerDailyRate(worker) : 0;
@@ -122,12 +133,11 @@
     }
     const daily = workerDailyRate(worker);
     const holidayPercent = Math.min(100, Math.max(0, Number(RB.data.settings.holidayPayPercent) || 0));
-    const base = status === "work" ? daily * Math.max(0, normalHours - lateHours) / planned
-      : status === "holiday" ? daily * holidayPercent / 100 : 0;
     const otRate = worker.overtimeRate == null ? Number(RB.data.settings.otRate) || 0 : Number(worker.overtimeRate) || 0;
     const overtimeEnabled = !!RB.data.settings.overtimeEnabled;
-    const overtimePay = status === "work" && overtimeEnabled ? otHours * otRate : 0;
-    const workerDue = Math.round(Math.max(0, base + overtimePay) * 100) / 100;
+    const pay = calculateWorkerPay(status,daily,normalHours,lateHours,planned,otHours,otRate,overtimeEnabled,holidayPercent);
+    const overtimePay = pay.overtimePay;
+    const workerDue = pay.workerDue;
     const labels = {work:"يوم عمل",holiday:"عطلة",absence:"غياب"};
     const row = {
       type:"work", k:status, d:date, ds:labels[status] + " — " + worker.name,
