@@ -172,7 +172,7 @@ function invoicesSection(projId){
           <button onclick="addInvoiceItem('${inv.id}')">+ بند</button>
           <button class=p onclick="printInvoice('${inv.id}')">🖨️ طباعة/PDF</button>
           <button onclick="togglePaid('${inv.id}')">${inv.paid ? "↩️ إلغاء" : "✅ دفع"}</button>
-          <button class=danger onclick="delInvoice('${inv.id}')">🗑</button>
+          <button class=danger onclick="delInvoice('${inv.id}')" title="الحذف النهائي متوقف حفاظاً على الحقوق" aria-label="الحذف النهائي متوقف">🔒</button>
         </div>
       </div>`;
     }).join("") || '<p class=muted>لا فواتير بعد</p>'}
@@ -183,7 +183,7 @@ function togglePaid(id){
   if(inv){ inv.paid = !inv.paid; RB.save(); render(); }
 }
 function delInvoice(id){
-  if(!confirm("حذف الفاتورة؟")) return;
-  RB.data.invoices = RB.data.invoices.filter(i => i.id !== id);
-  RB.save(); render();
-             }
+  const invoice=RB.data.invoices.find(i=>String(i.id)===String(id));
+  if(!invoice)return toast("لم نعثر على الفاتورة");
+  toast("الحذف النهائي للفواتير متوقف حفاظاً على الحقوق. سنوفر إلغاءً موثقاً يحتفظ بأثر الفاتورة بدلاً من محوها.");
+}

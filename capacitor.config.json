@@ -1,0 +1,8 @@
+{
+  "appId": "com.rimbook.app",
+  "appName": "Rimbook",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}

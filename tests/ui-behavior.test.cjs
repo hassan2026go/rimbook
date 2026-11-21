@@ -1,0 +1,191 @@
+const fs = require("node:fs");
+const vm = require("node:vm");
+const assert = require("node:assert/strict");
+
+const activation = fs.readFileSync("activation.js", "utf8");
+const app = fs.readFileSync("app.js", "utf8");
+const pro = fs.readFileSync("pro.js", "utf8");
+const voiceLedger = fs.readFileSync("voice-ledger.js", "utf8");
+const invoices = fs.readFileSync("invoices.js", "utf8");
+const receipts = fs.readFileSync("receipts.js", "utf8");
+const reversalMatch = voiceLedger.match(/function applyWorkReversal\(data,id,reason,now,newId\)\{[\s\S]*?\n\}/);
+assert.ok(reversalMatch, "financial reversal helper must exist");
+const applyWorkReversal = vm.runInNewContext("(" + reversalMatch[0] + ")");
+
+function extractFunction(source, name) {
+  const match = source.match(new RegExp("function " + name + "\\([^)]*\\) \\{[\\s\\S]*?\\n  \\}"));
+  assert.ok(match, name + " helper must exist");
+  return vm.runInNewContext("(" + match[0] + ")");
+}
+
+const projectOptions = extractFunction(activation, "projectOptions");
+const goalProgress = extractFunction(activation, "goalProgress");
+const normMatch = app.match(/function normalizeSearchText\(value\) \{[\s\S]*?\n\}/);
+assert.ok(normMatch, "Arabic search normalization must exist");
+const normalizeSearchText = vm.runInNewContext("(" + normMatch[0] + ")");
+assert.equal(normalizeSearchText("  أَحْمَد   مُحَمَّد  "), "احمد محمد");
+
+{
+  const result = projectOptions([], null);
+  assert.equal(result.hasProjects, false);
+  assert.equal(result.options.length, 1);
+  assert.equal(result.options[0][0], "");
+  assert.match(result.options[0][1], /عام/);
+  assert.equal(result.selected, "");
+}
+
+{
+  const projects = [
+    { id: "p1", name: "مشروع البناء" },
+    { id: "p2", name: "مشروع الزراعة" }
+  ];
+  const result = projectOptions(projects, "p2");
+  assert.equal(result.hasProjects, true);
+  assert.deepEqual(Array.from(result.options, row => Array.from(row)), [
+    ["", "عام — غير مرتبط بمشروع"],
+    ["p1", "مشروع البناء"],
+    ["p2", "مشروع الزراعة"]
+  ]);
+  assert.equal(result.selected, "p2");
+  assert.equal(projectOptions(projects, "deleted-project").selected, "");
+}
+
+{
+  const result = goalProgress(2, 10);
+  assert.equal(result.percent, 20);
+  assert.equal(result.remaining, 8);
+  assert.equal(result.exceeded, false);
+}
+
+{
+  const result = goalProgress(12, 10);
+  assert.equal(result.percent, 100);
+  assert.equal(result.remaining, 0);
+  assert.equal(result.exceeded, true);
+}
+
+{
+  const result = goalProgress(-4, 0);
+  assert.equal(result.done, 0);
+  assert.equal(result.total, 0);
+  assert.equal(result.percent, 0);
+}
+
+assert.match(activation, /ماذا تريد أن تنجز؟/);
+assert.match(activation, /كم تريد أن تنجز؟/);
+assert.match(activation, /كم أنجزت حتى الآن؟/);
+assert.match(activation, /حفظ الإنجاز/);
+assert.ok(activation.includes("toggleGoalCustomUnit(this.value)"));
+assert.ok(activation.includes("gcustomunit-label"));
+assert.match(activation, /عام.*غير مرتبط بمشروع/);
+assert.match(activation, /saveProfilePhoto\(this\)/);
+assert.match(activation, /saveProfileField\(/);
+assert.match(pro, /home-profile/);
+assert.match(activation, /project:selectedProject\(\)/);
+assert.match(activation, /data\.items\.forEach\(row=>\{if\(row\.project===id\)row\.project=null;\}\)/);
+assert.match(pro, /const projectSelect=\$\("pproject"\)/);
+assert.ok(pro.includes('aria-label="فتح الملف الشخصي"'));
+assert.ok(!pro.includes('id="proSearch"'), "only one unified search box should be installed");
+assert.ok(app.includes("RB.data.goals||[]"));
+assert.ok(app.includes("RB.data.habits||[]"));
+assert.ok(app.includes('kind==="goal"'));
+assert.ok(app.includes('event:"موعد"'));
+assert.match(pro, /pill\("مباشر","ok"\)/);
+
+assert.ok(activation.includes('row.type==="work"'));
+assert.ok(activation.includes("بقيد عكسي موثق"));
+assert.ok(voiceLedger.includes('row.type==="work"'));
+assert.ok(voiceLedger.includes("لن يؤثر ذلك في أي حركة مالية"));
+assert.ok(invoices.includes("الحذف النهائي للفواتير متوقف"));
+assert.ok(activation.includes("ستبقى جميع السجلات والفواتير محفوظة"));
+assert.ok(activation.includes("reverseWorkEntry"));
+assert.ok(voiceLedger.includes("تصحيح بقيد عكسي"));
+assert.ok(voiceLedger.includes("تم عكسه بقيد موثق"));
+assert.ok(voiceLedger.includes("countedRows.filter(w=>w.k===\"work\")"));
+assert.ok(receipts.includes("ملغى بقيد عكسي موثق"));
+
+{
+  const data = { items: [{ type: "work", id: "pay-1", k: "payment", d: "2026-11-20", rec: 100, due: 0, advance: 0, expense: 0, ds: "دفعة" }] };
+  const result = applyWorkReversal(data, "pay-1", "المبلغ أُدخل خطأ", 1234, "rev-1");
+  assert.equal(result.ok, true);
+  assert.equal(data.items.length, 2);
+  assert.equal(data.items[0].rec, 100, "original amount must remain unchanged");
+  assert.equal(data.items[0].reversedBy, "rev-1");
+  assert.equal(data.items[1].rec, -100, "reversal must offset the original amount");
+  assert.equal(data.items[1].reversalOf, "pay-1");
+  assert.equal(data.items[1].correctionReason, "المبلغ أُدخل خطأ");
+  assert.equal(data.items.reduce((sum, row) => sum + row.rec, 0), 0, "net received amount must return to zero");
+  const duplicate = applyWorkReversal(data, "pay-1", "محاولة ثانية", 2345, "rev-2");
+  assert.equal(duplicate.ok, false, "an original entry can only be reversed once");
+  assert.equal(data.items.length, 2);
+  const reverseOfReverse = applyWorkReversal(data, "rev-1", "محاولة عكس العكس", 3456, "rev-3");
+  assert.equal(reverseOfReverse.ok, false, "a reversal entry cannot itself be reversed");
+  assert.equal(data.items.length, 2);
+}
+
+{
+  const data = { items: [{ type: "work", id: "work-1", k: "work", due: 75, overtimePay: 15, otHours: 1.5, normalHours: 8 }] };
+  const result = applyWorkReversal(data, "work-1", "تصحيح ساعات العمل", 1234, "rev-work");
+  assert.equal(result.ok, true);
+  assert.equal(data.items[1].due, -75);
+  assert.equal(data.items[1].overtimePay, -15);
+  assert.equal(data.items[1].otHours, -1.5);
+  assert.equal(data.items[1].normalHours, -8);
+  assert.equal(data.items.reduce((sum, row) => sum + row.due, 0), 0, "net due must be offset");
+}
+
+{
+  const data = { items: [{ type: "work", id: "pay-2", k: "payment", rec: 10 }] };
+  const result = applyWorkReversal(data, "pay-2", "لا", 1234, "rev-short");
+  assert.equal(result.ok, false, "a meaningful reason is required");
+  assert.equal(data.items.length, 1, "invalid correction must not change data");
+}
+
+assert.ok(pro.includes('if(profile.role==="worker")'), "worker must receive a dedicated simplified home screen");
+for (const action of ["work", "holiday", "payment", "advance", "expense"]) {
+  assert.ok(pro.includes("voiceLedgerQuick(\\'" + action + "\\')"), "worker home must expose the " + action + " quick action");
+}
+assert.ok(pro.includes("voiceLedgerStart()"), "worker home must expose speech input");
+assert.ok(pro.includes("مراجعة حسابي وسجل الحركات"), "worker home must provide a clear route to their ledger");
+assert.ok(voiceLedger.includes("راجع ما فهمه التطبيق قبل الحفظ"), "speech entries must be reviewed before saving");
+
+
+{
+  const confirmStart = voiceLedger.indexOf("window.voiceLedgerConfirm=function(){");
+  const confirmEnd = voiceLedger.indexOf("\n};", confirmStart);
+  assert.ok(confirmStart >= 0 && confirmEnd > confirmStart, "voice confirmation handler must exist");
+  const confirmSource = voiceLedger.slice(confirmStart, confirmEnd + 3);
+  function voiceConfirmHarness(saveOk) {
+    const data = { items: [] };
+    let rendered = 0;
+    const messages = [];
+    const context = {
+      pending: { date: "2026-11-21", raw: "اليوم عمل واصل دفعة 10", items: [
+        { k: "work", d: "2026-11-21", due: 50 },
+        { k: "payment", d: "2026-11-21", rec: 10 }
+      ] },
+      window: {},
+      RB: { transact(mutator) { if (!saveOk) return false; mutator(data); return true; } },
+      render() { rendered++; },
+      toast(message) { messages.push(message); },
+      Date,
+      Math
+    };
+    vm.runInNewContext(confirmSource + ";", context);
+    return { context, data, messages, get rendered() { return rendered; } };
+  }
+  const failed = voiceConfirmHarness(false);
+  failed.context.window.voiceLedgerConfirm();
+  assert.equal(failed.data.items.length, 0, "failed voice save must not append partial entries");
+  assert.ok(failed.context.pending, "failed voice save must keep the review available for retry");
+  assert.equal(failed.rendered, 0, "failed voice save must not advance the screen");
+  const succeeded = voiceConfirmHarness(true);
+  succeeded.context.window.voiceLedgerConfirm();
+  assert.equal(succeeded.data.items.length, 3, "two parsed entries and one voice audit log must save together");
+  assert.equal(succeeded.data.items[0].voiceText, "اليوم عمل واصل دفعة 10");
+  assert.equal(succeeded.data.items[2].type, "voice_log");
+  assert.equal(succeeded.context.pending, null, "successful voice save must clear the pending review");
+  assert.equal(succeeded.rendered, 1);
+}
+
+console.log("UI behavior tests passed.");
