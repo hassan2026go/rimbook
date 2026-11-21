@@ -164,7 +164,6 @@ function searchRimbook(raw) {
   });
   (RB.data.contacts||[]).forEach(c=>add("contact",c.id,c.name||"جهة اتصال",[c.company,c.phone].filter(Boolean).join(" · "),c,"contacts"));
   (RB.data.goals||[]).forEach(g=>add("goal",g.id,g.name||"هدف","هدف",g,"goals"));
-  (RB.data.habits||[]).forEach(h=>add("habit",h.id,h.name||"عادة","عادة",h,"habits"));
   (RB.data.invoices||[]).forEach(inv=>add("invoice",inv.id,"فاتورة #"+(inv.number||""),[inv.client,inv.date].filter(Boolean).join(" · "),inv,"invoices"));
   const shown=results.slice(0,20);
   box.innerHTML=shown.length
