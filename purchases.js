@@ -32,6 +32,7 @@
       supplierBalance:remainingCents/100
     };
   }
+  window.rimbookPurchaseAccounting = purchaseAccounting;
   const paid = p => purchaseAccounting(p).paid;
   const refunded = p => purchaseAccounting(p).refunded;
   const remaining = p => purchaseAccounting(p).remaining;
