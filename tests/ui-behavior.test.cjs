@@ -11,6 +11,8 @@ const receipts = fs.readFileSync("receipts.js", "utf8");
 const workforce = fs.readFileSync("workforce.js", "utf8");
 const notebook = fs.readFileSync("notebook.js", "utf8");
 const push = fs.readFileSync("push.js", "utf8");
+const backup = fs.readFileSync("backup.js", "utf8");
+const sync = fs.readFileSync("sync.js", "utf8");
 
 const reversalMatch = voiceLedger.match(/function applyWorkReversal\(data,id,reason,now,newId\)\{[\s\S]*?\n\}/);
 assert.ok(reversalMatch, "financial reversal helper must exist");
@@ -206,4 +208,20 @@ assert.ok(notebook.includes('agenda: "notebook"') && notebook.includes('notes: "
 assert.ok(push.includes("event.reminderEnabled===false"), "disabled reminders must not notify");
 assert.ok(pro.includes("مستحقات العمال المتبقية") && pro.includes("إدارة العمال واليومية"), "management dashboard must show worker payroll and routes");
 
-console.log("UI behavior tests passed.");
+
+assert.ok(backup.includes("collectRimbookBackup") && backup.includes("restoreRimbookBackup"), "one full backup and restore format must be shared across the app");
+assert.ok(backup.includes("ATT_DB.get") && backup.includes("ATT_DB.put"), "full backups must include and restore IndexedDB attachments");
+assert.ok(backup.includes("backupEncrypted") && backup.includes("gdriveUpload") && backup.includes("shareFileWhatsApp"), "encrypted, Google Drive and WhatsApp backup routes must use full backups");
+assert.ok(sync.includes("rimbook-backup-chunk") && sync.includes("restoreRimbookBackup"), "direct device transfer must carry and restore chunked full backups");
+assert.ok(activation.includes("تنزيل نسخة كاملة JSON") && activation.includes("shareFileWhatsApp"), "backup settings must expose complete backup and sharing actions");
+{
+  const data = { items: [{ type: "work", id: "worker-pay", k: "worker_payment", workerId: "w1", workerDue: 120, workerPaid: 30, workerAdvance: 10, lateHours: 1 }] };
+  const result = applyWorkReversal(data, "worker-pay", "تصحيح دفعة العامل", 4567, "worker-rev");
+  assert.equal(result.ok, true);
+  assert.equal(data.items[1].workerDue, -120);
+  assert.equal(data.items[1].workerPaid, -30);
+  assert.equal(data.items[1].workerAdvance, -10);
+  assert.equal(data.items[1].lateHours, -1);
+  assert.equal(data.items[1].workerId, "w1");
+}
+\nconsole.log("UI behavior tests passed.");
