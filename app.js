@@ -71,6 +71,11 @@ const RB = (() => {
       return ok && found;
     },
     remove(id) {
+      const target = data.items.find(x => String(x.id) === String(id));
+      if (target && target.type === "work") {
+        toast("لا يمكن حذف حركة عمل أو حساب. استخدم تصحيح الحركة بقيد عكسي مع ذكر السبب للحفاظ على السجل المالي.");
+        return false;
+      }
       const before = data.items.length;
       const ok = transact(d => { d.items = d.items.filter(x => x.id !== id); });
       return ok && data.items.length < before;
