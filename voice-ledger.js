@@ -20,12 +20,12 @@ function applyWorkReversal(data,id,reason,now,newId){
  const why=String(reason||"").trim();
  if(why.length<3)return {ok:false,error:"اكتب سبب التصحيح بوضوح"};
  const signed={};
- for(const key of ["due","rec","advance","expense","ot","otHours","normalHours","overtimePay"]){
+ for(const key of ["due","rec","advance","expense","ot","otHours","normalHours","overtimePay","workerDue","workerPaid","workerAdvance","lateHours"]){
   const value=Number(original[key]||0);
   if(!Number.isFinite(value))return {ok:false,error:"يوجد رقم غير صالح في الحركة؛ لم يتغير أي سجل"};
   signed[key]=-value;
  }
- const reversal={type:"work",k:original.k,d:original.d,ds:"قيد عكسي للحركة "+String(original.ds||original.k||"المالية"),project:original.project||null,...signed,isReversal:true,reversalOf:original.id,correctionReason:why,created:now,id:newId};
+ const reversal={type:"work",k:original.k,d:original.d,ds:"قيد عكسي للحركة "+String(original.ds||original.k||"المالية"),project:original.project||null,workerId:original.workerId||null,person:original.person||"",...signed,isReversal:true,reversalOf:original.id,correctionReason:why,created:now,id:newId};
  original.reversedBy=newId;original.reversalReason=why;original.reversedAt=now;items.push(reversal);
  return {ok:true,originalId:original.id,reversalId:newId};
 }
