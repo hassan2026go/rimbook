@@ -72,11 +72,12 @@ VIEWS.home=function(){
   const worker= (D.workers||[]).find(w=>String(w.id)===String(profile.workerId||""));
   if(!worker)return '<div class="card">'+profileCard+'<h2>مرحباً '+safe(profile.name||"بك")+'</h2><p class="muted">اربط ملف العامل الخاص بك من صفحة الملف الشخصي حتى تظهر يومياتك ومستحقاتك فقط.</p><button class="p" onclick="go(\'profile\')">ربط ملف العامل</button></div>';
   const workerMonth=today().slice(0,7),rows=work.filter(x=>String(x.workerId||"")===String(worker.id)&&(x.d||"").startsWith(workerMonth));
-  const worked=rows.filter(x=>x.k==="work"&&!x.isReversal&&!x.reversedBy).length;
-  const receivedNow=rows.reduce((sum,x)=>sum+(Number(x.workerPaid)||0),0);
-  const dueNow=rows.reduce((sum,x)=>sum+(Number(x.workerDue)||0),0);
-  const advancesNow=rows.reduce((sum,x)=>sum+(Number(x.workerAdvance)||0),0);
-  const balance=dueNow-receivedNow-advancesNow;
+  const workerSummary=window.rimbookWorkerSummary?window.rimbookWorkerSummary(worker.id,workerMonth):null;
+  const worked=workerSummary?workerSummary.days:rows.filter(x=>x.k==="work"&&!x.isReversal&&!x.reversedBy).length;
+  const receivedNow=workerSummary?workerSummary.paid:rows.reduce((sum,x)=>sum+(Number(x.workerPaid)||0),0);
+  const dueNow=workerSummary?workerSummary.due:rows.reduce((sum,x)=>sum+(Number(x.workerDue)||0),0);
+  const advancesNow=workerSummary?workerSummary.advances:rows.reduce((sum,x)=>sum+(Number(x.workerAdvance)||0),0);
+  const balance=workerSummary?workerSummary.balance:dueNow-receivedNow-advancesNow;
   return '<div class="card">'+profileCard+'<h2>أهلاً بك '+safe(profile.name||worker.name)+' 👋</h2><p class="muted">'+safe(worker.jobTitle||"العامل")+' · ملف العمل: '+safe(worker.name)+'</p><div class="grid2 worker-actions"><button class="card" type="button" onclick="voiceLedgerQuick(\'work\')" style="min-height:92px;font-size:16px">🧱<br><b>تسجيل يوم عمل</b></button><button class="card" type="button" onclick="voiceLedgerQuick(\'holiday\')" style="min-height:92px;font-size:16px">🌴<br><b>تسجيل عطلة</b></button><button class="card" type="button" onclick="voiceLedgerQuick(\'payment\')" style="min-height:92px;font-size:16px">💵<br><b>تسجيل دفعة مستلمة</b></button><button class="card" type="button" onclick="voiceLedgerQuick(\'advance\')" style="min-height:92px;font-size:16px">🤝<br><b>تسجيل سلفة</b></button><button class="card" type="button" onclick="voiceLedgerQuick(\'expense\')" style="min-height:92px;font-size:16px">🧾<br><b>تسجيل مصروف عمل</b></button><button class="card" type="button" onclick="voiceLedgerStart()" style="min-height:92px;font-size:16px">🎤<br><b>التسجيل بالصوت</b></button></div><button class="p" type="button" style="width:100%;min-height:48px;margin-top:10px" onclick="go(\'voice\')">📅 مراجعة حسابي وسجل الحركات</button></div>'+
   '<div class="grid2"><div class="card"><small class="muted">أيام العمل هذا الشهر</small><h3>'+worked+'</h3></div><div class="card"><small class="muted">المستحق</small><h3>'+money(dueNow)+'</h3></div><div class="card"><small class="muted">الدفعات المستلمة</small><h3>'+money(receivedNow)+'</h3></div><div class="card"><small class="muted">السلف</small><h3>'+money(advancesNow)+'</h3></div><div class="card"><small class="muted">المتبقي لك</small><h3>'+money(balance)+'</h3></div></div>'+
   '<div class="card"><b>سجل عملك الشخصي</b><p class="muted">تعرض هذه الصفحة الحركات المرتبطة بملفك فقط. راجع كل تسجيل صوتي قبل اعتماده.</p><button type="button" onclick="go(\'profile\')">👤 ملفي الشخصي</button></div>';
