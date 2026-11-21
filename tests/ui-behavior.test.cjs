@@ -205,4 +205,5 @@ assert.ok(notebook.includes("delete VIEWS.habits") && notebook.includes("delete 
 assert.ok(notebook.includes('agenda: "notebook"') && notebook.includes('notes: "notebook"') && notebook.includes('reminders: "notebook"'), "old navigation links must resolve to the unified notebook");
 assert.ok(push.includes("event.reminderEnabled===false"), "disabled reminders must not notify");
 assert.ok(pro.includes("مستحقات العمال المتبقية") && pro.includes("إدارة العمال واليومية"), "management dashboard must show worker payroll and routes");
-\nconsole.log("UI behavior tests passed.");
+
+console.log("UI behavior tests passed.");
