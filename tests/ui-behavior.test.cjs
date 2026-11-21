@@ -299,6 +299,10 @@ const calculateWorkerPay = extractFunction(workforce, "calculateWorkerPay");
   assert.deepEqual({...disabled}, {base:100, overtimePay:0, workerDue:100}, "disabled overtime must record no overtime pay");
   const invalidRates = calculateWorkerPay("work", -100, 8, -2, 8, 2, -15, true, 50);
   assert.deepEqual({...invalidRates}, {base:0,overtimePay:0,workerDue:0},"negative wage and overtime rates must never create negative pay or inflate hours");
+  const invalidPlan = calculateWorkerPay("work",100,8,0,-8,2,15,true,50);
+  assert.deepEqual({...invalidPlan},{base:100,overtimePay:30,workerDue:130},"an invalid planned-hours setting must fall back safely instead of multiplying wages");
+  const infiniteInputs = calculateWorkerPay("work",Infinity,8,0,8,Infinity,Infinity,true,50);
+  assert.deepEqual({...infiniteInputs},{base:0,overtimePay:0,workerDue:0},"non-finite wage and overtime values must never enter payroll totals");
 }
 assert.ok(workforce.includes("normalHours > planned"), "normal hours cannot exceed configured standard hours");
 assert.ok(workforce.includes("!x.reversedBy).length"), "reversed holidays and absences must not remain counted");
