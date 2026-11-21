@@ -8,6 +8,10 @@ const pro = fs.readFileSync("pro.js", "utf8");
 const voiceLedger = fs.readFileSync("voice-ledger.js", "utf8");
 const invoices = fs.readFileSync("invoices.js", "utf8");
 const receipts = fs.readFileSync("receipts.js", "utf8");
+const workforce = fs.readFileSync("workforce.js", "utf8");
+const notebook = fs.readFileSync("notebook.js", "utf8");
+const push = fs.readFileSync("push.js", "utf8");
+
 const reversalMatch = voiceLedger.match(/function applyWorkReversal\(data,id,reason,now,newId\)\{[\s\S]*?\n\}/);
 assert.ok(reversalMatch, "financial reversal helper must exist");
 const applyWorkReversal = vm.runInNewContext("(" + reversalMatch[0] + ")");
@@ -188,4 +192,17 @@ assert.ok(voiceLedger.includes("راجع ما فهمه التطبيق قبل ا�
   assert.equal(succeeded.rendered, 1);
 }
 
-console.log("UI behavior tests passed.");
+
+assert.ok(workforce.includes("VIEWS.workers"), "worker directory must be part of the app");
+assert.ok(workforce.includes("VIEWS.workday"), "daily attendance must be part of the app");
+assert.ok(workforce.includes("VIEWS.payroll"), "monthly payroll statement must be part of the app");
+assert.ok(workforce.includes('wageType === "weekly"'), "weekly wages must be converted using configured workdays");
+assert.ok(workforce.includes('wageType === "monthly"'), "monthly wages must be converted using configured workdays");
+assert.ok(workforce.includes("workerDue") && workforce.includes("workerPaid") && workforce.includes("workerAdvance"), "worker accruals, payments and advances must remain separate");
+assert.ok(workforce.includes("ستبقى جميع سجلاته وحساباته محفوظة"), "worker archiving must preserve historical accounts");
+assert.ok(notebook.includes("VIEWS.notebook"), "notes, appointments and reminders must share one notebook screen");
+assert.ok(notebook.includes("delete VIEWS.habits") && notebook.includes("delete TABS.habits"), "habits must be removed from the active app");
+assert.ok(notebook.includes('agenda: "notebook"') && notebook.includes('notes: "notebook"') && notebook.includes('reminders: "notebook"'), "old navigation links must resolve to the unified notebook");
+assert.ok(push.includes("event.reminderEnabled===false"), "disabled reminders must not notify");
+assert.ok(pro.includes("مستحقات العمال المتبقية") && pro.includes("إدارة العمال واليومية"), "management dashboard must show worker payroll and routes");
+\nconsole.log("UI behavior tests passed.");
