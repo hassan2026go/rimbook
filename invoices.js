@@ -1,6 +1,24 @@
 /* rimbook invoices.js - فواتير PDF احترافية */
 
 const INV_CURRENCIES = { "$":"USD","€":"EUR","TL":"TRY","SAR":"SAR","AED":"AED","ل.س":"SYP" };
+const invoiceCents = value => Math.round((Number(value)||0)*100);
+function parseInvoiceAmount(value){
+  const normalized=String(value??"").replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/٬/g,"").replace(/٫/g,".").replace(/,/g,".");
+  return Number(normalized);
+}
+function invoicePaymentSummary(inv){
+  const rows=RB.all("work").filter(row=>String(row.invoiceId||"")===String(inv.id));
+  const paidCents=rows.reduce((sum,row)=>sum+invoiceCents(row.rec),0);
+  const totalCents=invoiceCents(invoiceTotals(inv).total);
+  const recognizedPaid=Math.max(0,paidCents);
+  return {
+    total:totalCents/100,paid:recognizedPaid/100,
+    remaining:Math.max(0,totalCents-recognizedPaid)/100,
+    status:totalCents>0&&paidCents>=totalCents?"paid":paidCents>0?"partial":inv.paid?"legacy":"unpaid",
+    paymentRows:rows.length
+  };
+}
+window.rimbookInvoiceSummary=invoicePaymentSummary;
 
 function invoiceNumber(projId){
   const invs = RB.data.invoices || [];
@@ -37,17 +55,43 @@ function addInvoiceItem(invId){
   if(!inv) return;
   const desc = prompt("وصف البند:");
   if(!desc) return;
-  const qty = parseFloat(prompt("الكمية:", "1") || "1");
-  const price = parseFloat(prompt("السعر:", "0") || "0");
-  inv.items.push({ desc, qty, price });
+  const rawQty=prompt("الكمية:", "1");
+  if(rawQty===null)return;
+  const qty=Number(rawQty);
+  const rawPrice=prompt("السعر:", "0");
+  if(rawPrice===null)return;
+  const price=parseInvoiceAmount(rawPrice);
+  if(!Number.isFinite(qty)||qty<=0)return toast("الكمية يجب أن تكون رقماً أكبر من صفر");
+  if(!Number.isFinite(price)||price<0)return toast("أدخل سعراً صحيحاً لا يقل عن صفر");
+  inv.items.push({ desc:desc.trim(), qty, price:invoiceCents(price)/100 });
   RB.save(); render();
 }
 
 function invoiceTotals(inv){
-  const sub = inv.items.reduce((s, it) => s + (it.qty || 0) * (it.price || 0), 0);
-  const tax = sub * (inv.tax || 0) / 100;
-  const disc = sub * (inv.discount || 0) / 100;
-  return { sub, tax, disc, total: sub + tax - disc };
+  const subCents=(inv.items||[]).reduce((sum,it)=>sum+invoiceCents((Number(it.qty)||0)*(Number(it.price)||0)),0);
+  const taxRate=Math.min(100,Math.max(0,Number(inv.tax)||0));
+  const discountRate=Math.min(100,Math.max(0,Number(inv.discount)||0));
+  const taxCents=Math.round(subCents*taxRate/100);
+  const discountCents=Math.round(subCents*discountRate/100);
+  return {sub:subCents/100,tax:taxCents/100,disc:discountCents/100,total:(subCents+taxCents-discountCents)/100};
+}
+function recordInvoicePayment(invId){
+  const inv=RB.data.invoices.find(row=>String(row.id)===String(invId));
+  if(!inv)return toast("لم نعثر على الفاتورة");
+  const summary=invoicePaymentSummary(inv);
+  if(summary.remaining<=0)return toast("الفاتورة مسددة بالكامل");
+  if(summary.status==="legacy")toast("تنبيه: الفاتورة معلّمة مدفوعة قديماً دون حركة قبض موثقة؛ سيتم تسجيل القبض الفعلي الآن.");
+  const raw=prompt("مبلغ الدفعة — المتبقي "+summary.remaining.toFixed(2),summary.remaining.toFixed(2));
+  if(raw===null)return;
+  const amount=parseInvoiceAmount(raw),amountCents=invoiceCents(amount);
+  if(!Number.isFinite(amount)||amountCents<=0||amountCents>invoiceCents(summary.remaining))return toast("أدخل مبلغاً صحيحاً لا يتجاوز الرصيد المتبقي");
+  const row=RB.add({
+    type:"work",k:"payment",d:iso(new Date()),ds:"دفعة فاتورة #"+String(inv.number||inv.id),
+    due:0,rec:amountCents/100,advance:0,expense:0,project:inv.project||null,
+    person:inv.client||"",invoiceId:inv.id,invoiceNumber:inv.number||""
+  });
+  if(!row)return;
+  render();toast("تم تسجيل الدفعة في سجل المقبوضات وربطها بالفاتورة دون تكرار");
 }
 
 function printInvoice(invId){
@@ -165,22 +209,18 @@ function invoicesSection(projId){
       return `<div style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px">
         <div class=row style="justify-content:space-between">
           <b>#${inv.number}</b>
-          <span class=tag>${inv.paid ? "✅ مدفوعة" : "⏳ معلقة"}</span>
+          <span class=tag>${invoicePaymentSummary(inv).status==="paid" ? "✅ مدفوعة" : invoicePaymentSummary(inv).status==="partial" ? "دفعة جزئية" : invoicePaymentSummary(inv).status==="legacy" ? "مدفوعة قديماً — قبض غير موثق" : "⏳ غير مسددة"}</span>
         </div>
-        <small class=muted>${inv.date} · ${T.total.toFixed(2)} ${RB.data.settings.currency}</small>
+        <small class=muted>${inv.date} · الإجمالي ${T.total.toFixed(2)} ${RB.data.settings.currency} · المقبوض ${invoicePaymentSummary(inv).paid.toFixed(2)} · المتبقي ${invoicePaymentSummary(inv).remaining.toFixed(2)}</small>
         <div class=row style="margin-top:6px">
           <button onclick="addInvoiceItem('${inv.id}')">+ بند</button>
           <button class=p onclick="printInvoice('${inv.id}')">🖨️ طباعة/PDF</button>
-          <button onclick="togglePaid('${inv.id}')">${inv.paid ? "↩️ إلغاء" : "✅ دفع"}</button>
+          ${invoicePaymentSummary(inv).remaining>0 ? '<button class=p onclick="recordInvoicePayment(\''+inv.id+'\')">تسجيل دفعة</button>' : '<span class=tag>مكتملة السداد</span>'}
           <button class=danger onclick="delInvoice('${inv.id}')" title="الحذف النهائي متوقف حفاظاً على الحقوق" aria-label="الحذف النهائي متوقف">🔒</button>
         </div>
       </div>`;
     }).join("") || '<p class=muted>لا فواتير بعد</p>'}
   </div>`;
-}
-function togglePaid(id){
-  const inv = RB.data.invoices.find(i => i.id === id);
-  if(inv){ inv.paid = !inv.paid; RB.save(); render(); }
 }
 function delInvoice(id){
   const invoice=RB.data.invoices.find(i=>String(i.id)===String(id));
