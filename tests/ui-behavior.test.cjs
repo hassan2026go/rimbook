@@ -277,11 +277,21 @@ assert.ok(workforce.includes("!x.reversedBy).length"), "reversed holidays and ab
 const purchaseAccounting = extractFunction(purchases, "purchaseAccounting", {
   cents: value => Math.round((Number(value) || 0) * 100)
 });
+const appendPurchaseRefund = extractFunction(purchases, "appendPurchaseRefund", {
+  cents: value => Math.round((Number(value) || 0) * 100)
+});
 {
   const active = purchaseAccounting({total:0.1+0.2,payments:[{amount:0.1},{amount:0.1}],refunds:[],status:"active"});
   assert.deepEqual({...active}, {paid:0.2, refunded:0, remaining:0.1, netCost:0.3, supplierBalance:0.1}, "supplier balance must use integer cents");
   const cancelled = purchaseAccounting({total:100,payments:[{amount:60}],refunds:[{amount:20}],status:"cancelled"});
   assert.deepEqual({...cancelled}, {paid:60, refunded:20, remaining:0, netCost:40, supplierBalance:0}, "cancelled purchase cost must equal paid minus refunded, with no open supplier liability");
+  const legacy = {payments:[{amount:60}],refunds:[{amount:10}]};
+  assert.equal(appendPurchaseRefund(legacy,20,"2026-11-21","ref-2"),true,"a further partial refund within the unpaid refund limit must be accepted");
+  assert.deepEqual(legacy.refunds.map(x=>x.amount),[10,20],"new refunds must append without overwriting historical refunds");
+  assert.equal(appendPurchaseRefund(legacy,31,"2026-11-21","ref-3"),false,"cumulative refunds must never exceed the amount actually paid");
+  assert.equal(legacy.refunds.length,2,"a rejected over-refund must not alter the refund history");
+  assert.equal(appendPurchaseRefund(legacy,0,"2026-11-21","ref-4"),true,"a cancellation with no additional refund must preserve history");
+  assert.equal(legacy.refunds.length,2);
 }
 
 assert.ok(workforce.includes("window.rimbookCalculateWorkerPay = calculateWorkerPay"), "voice and quick-entry screens must use the shared payroll calculator");
