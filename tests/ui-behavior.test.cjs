@@ -205,7 +205,7 @@ assert.ok(workforce.includes("ستبقى جميع سجلاته وحساباته 
 assert.ok(notebook.includes("VIEWS.notebook"), "notes, appointments and reminders must share one notebook screen");
 assert.ok(notebook.includes("delete VIEWS.habits") && notebook.includes("delete TABS.habits"), "habits must be removed from the active app");
 assert.ok(notebook.includes('agenda: "notebook"') && notebook.includes('notes: "notebook"') && notebook.includes('reminders: "notebook"'), "old navigation links must resolve to the unified notebook");
-assert.ok(push.includes("event.reminderEnabled===false"), "disabled reminders must not notify");
+assert.ok(push.includes("e.reminderEnabled === false"), "disabled reminders must not notify");
 assert.ok(pro.includes("مستحقات العمال المتبقية") && pro.includes("إدارة العمال واليومية"), "management dashboard must show worker payroll and routes");
 
 
