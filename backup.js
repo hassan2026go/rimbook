@@ -53,21 +53,39 @@
         !Array.isArray(payload.appData.items) || !Array.isArray(payload.attachments)) {
       throw new Error("بنية ملف النسخة غير صالحة أو إصدارها غير مدعوم");
     }
+    const referenced = new Set();
+    for (const row of payload.appData.items) {
+      if (!row || typeof row !== "object") throw new Error("سجل غير صالح داخل النسخة");
+      if (row.attachments != null && !Array.isArray(row.attachments)) {
+        throw new Error("قائمة مرفقات أحد السجلات غير صالحة");
+      }
+      for (const ref of row.attachments || []) {
+        if (!ref || typeof ref.aid !== "string" || !ref.aid.trim()) {
+          throw new Error("مرجع مرفق غير صالح داخل بيانات التطبيق");
+        }
+        referenced.add(ref.aid);
+      }
+    }
     const seen = new Set();
-    return payload.attachments.map(item => {
+    const prepared = payload.attachments.map(item => {
       if (!item || typeof item.aid !== "string" || !item.aid.trim() ||
           typeof item.base64 !== "string" ||
           !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(item.base64) ||
+          !Number.isSafeInteger(item.size) || item.size < 0 ||
           seen.has(item.aid)) {
         throw new Error("بيانات مرفق غير صالحة أو مكررة");
       }
       seen.add(item.aid);
       const blob = base64ToBlob(item.base64, item.type);
-      if (Number.isFinite(Number(item.size)) && Number(item.size) !== blob.size) {
+      if (item.size !== blob.size) {
         throw new Error("حجم المرفق لا يطابق بيانات النسخة: " + (item.name || item.aid));
       }
       return { aid:item.aid, name:item.name || item.aid, type:item.type || blob.type, size:blob.size, blob };
     });
+    if (seen.size !== referenced.size || [...referenced].some(aid => !seen.has(aid))) {
+      throw new Error("النسخة لا تحتوي جميع المرفقات المشار إليها في السجلات");
+    }
+    return prepared;
   }
 
   async function restoreFullBackupPayload(payload) {
