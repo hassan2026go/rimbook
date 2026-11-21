@@ -427,4 +427,5 @@ assert.ok(attachmentsSource.includes("t.onabort = () => finishError(t.error)"), 
 
 assert.ok(backup.includes("const referenced = new Set()") && backup.includes("seen.size !== referenced.size"), "full restore must reject backups with missing or unreferenced attachment payloads");
 assert.ok(backup.includes("!Number.isSafeInteger(item.size)") && backup.includes("item.size !== blob.size"), "full restore must require exact safe attachment sizes");
-\nconsole.log("UI behavior tests passed.");
+
+console.log("UI behavior tests passed.");
