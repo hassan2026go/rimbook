@@ -24,15 +24,17 @@
     const a="٠١٢٣٤٥٦٧٨٩", p="۰۱۲۳۴۵۶۷۸۹", i=a.indexOf(ch); return String(i >= 0 ? i : p.indexOf(ch));
   });
   function summary(id, month) {
-    const rows = workRows(id).filter(x => !month || String(x.d || "").startsWith(month));
-    const sum = key => rows.reduce((s,x) => s + (Number(x[key]) || 0), 0);
+    const allRows=workRows(id);
+    const rows=allRows.filter(x=>!month||String(x.d||"").startsWith(month));
+    const throughRows=month?allRows.filter(x=>String(x.d||"")<=month+"-31"):allRows;
+    const sum=(source,key)=>source.reduce((total,x)=>total+(Number(x[key])||0),0);
     return {
       rows, days: rows.filter(x => x.k === "work" && !x.isReversal && !x.reversedBy).length,
       holidays: rows.filter(x => x.k === "holiday" && !x.isReversal && !x.reversedBy).length,
       absences: rows.filter(x => x.k === "absence" && !x.isReversal && !x.reversedBy).length,
-      overtime: sum("otHours"), due: sum("workerDue"),
-      paid: sum("workerPaid"), advances: sum("workerAdvance"),
-      balance: sum("workerDue") - sum("workerPaid") - sum("workerAdvance")
+      overtime: sum(rows,"otHours"), due: sum(rows,"workerDue"),
+      paid: sum(rows,"workerPaid"), advances: sum(rows,"workerAdvance"),
+      balance: sum(throughRows,"workerDue")-sum(throughRows,"workerPaid")-sum(throughRows,"workerAdvance")
     };
   }
   function workerDailyRate(worker) {
