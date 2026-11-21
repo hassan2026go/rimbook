@@ -1,4 +1,4 @@
-const CACHE_NAME = "rimbook-pwa-v16";
+const CACHE_NAME = "rimbook-pwa-v17";
 const APP_FILES = [
   "./",
   "./index.html",
@@ -9,6 +9,7 @@ const APP_FILES = [
   "./receipts.js",
   "./notebook.js",
   "./workforce.js",
+  "./backup.js",
   "./manifest.webmanifest",
   "./app.js",
   "./sync.js",
