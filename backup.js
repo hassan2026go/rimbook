@@ -46,21 +46,60 @@
     };
   };
 
-  window.restoreRimbookBackup = async function (payload) {
-    if (payload && payload.format === FORMAT) {
-      if (!payload.appData || !Array.isArray(payload.appData.items) || !Array.isArray(payload.attachments)) {
-        throw new Error("بنية ملف النسخة غير صالحة");
+  function validateFullBackupPayload(payload) {
+    if (!payload || payload.format !== FORMAT || !Number.isInteger(payload.version) ||
+        payload.version < 1 || payload.version > VERSION ||
+        !payload.appData || typeof payload.appData !== "object" ||
+        !Array.isArray(payload.appData.items) || !Array.isArray(payload.attachments)) {
+      throw new Error("بنية ملف النسخة غير صالحة أو إصدارها غير مدعوم");
+    }
+    const seen = new Set();
+    return payload.attachments.map(item => {
+      if (!item || typeof item.aid !== "string" || !item.aid.trim() ||
+          typeof item.base64 !== "string" ||
+          !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(item.base64) ||
+          seen.has(item.aid)) {
+        throw new Error("بيانات مرفق غير صالحة أو مكررة");
       }
-      if (!(typeof ATT_DB !== "undefined" ? ATT_DB : null)) throw new Error("قاعدة المرفقات غير متاحة");
-      for (const item of payload.attachments) {
-        if (!item || !item.aid || typeof item.base64 !== "string") throw new Error("بيانات مرفق غير صالحة");
-        const blob = base64ToBlob(item.base64, item.type);
-        await ATT_DB.put(item.aid, { name: item.name || item.aid, type: item.type || blob.type, size: blob.size, blob });
+      seen.add(item.aid);
+      const blob = base64ToBlob(item.base64, item.type);
+      if (Number.isFinite(Number(item.size)) && Number(item.size) !== blob.size) {
+        throw new Error("حجم المرفق لا يطابق بيانات النسخة: " + (item.name || item.aid));
+      }
+      return { aid:item.aid, name:item.name || item.aid, type:item.type || blob.type, size:blob.size, blob };
+    });
+  }
+
+  async function restoreFullBackupPayload(payload) {
+    if (typeof ATT_DB === "undefined" || !ATT_DB) throw new Error("قاعدة المرفقات غير متاحة");
+    const prepared = validateFullBackupPayload(payload);
+    const previous = new Map();
+    for (const item of prepared) previous.set(item.aid, await ATT_DB.get(item.aid));
+    const written = [];
+    try {
+      for (const item of prepared) {
+        await ATT_DB.put(item.aid, { name:item.name, type:item.type, size:item.size, blob:item.blob });
+        written.push(item.aid);
       }
       if (!RB.replace(payload.appData)) throw new Error("تعذر استبدال بيانات التطبيق");
-      render();
-      return { legacy: false, attachments: payload.attachments.length };
+    } catch (error) {
+      const rollbackErrors = [];
+      for (const aid of written.reverse()) {
+        try {
+          const old = previous.get(aid);
+          if (old) await ATT_DB.put(aid, old);
+          else await ATT_DB.del(aid);
+        } catch (rollbackError) { rollbackErrors.push(rollbackError); }
+      }
+      if (rollbackErrors.length) throw new Error("فشل الاسترجاع وتعذر التراجع الكامل عن بعض المرفقات");
+      throw error;
     }
+    render();
+    return { legacy:false, attachments:prepared.length };
+  }
+
+  window.restoreRimbookBackup = async function (payload) {
+    if (payload && payload.format === FORMAT) return restoreFullBackupPayload(payload);
     // Backward compatibility: accept all previous JSON backups.
     if (payload && Array.isArray(payload.items)) {
       if (!RB.replace(payload)) throw new Error("تعذر استعادة النسخة القديمة");
