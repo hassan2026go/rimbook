@@ -31,7 +31,7 @@ function customerInvoiceSummary(contact,invoices,contacts) {
     const ids=[inv.clientContactId,inv.contactId,inv.customerId].filter(value=>value!==undefined&&value!==null&&String(value)!=="").map(String);
     if(ids.length)return ids.includes(String(contact.id));
     return sameName.length===1&&norm(inv.client)===norm(contact.name);
-  });
+    });
   const summaries=linked.map(invoicePaymentSummary);
   const cents=value=>Math.round((Number(value)||0)*100);
   const sum=key=>summaries.reduce((total,row)=>total+cents(row[key]),0)/100;
