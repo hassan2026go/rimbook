@@ -21,6 +21,29 @@ function parseInvoiceAmount(value){
   }
 window.rimbookInvoiceSummary=invoicePaymentSummary;
 
+function customerInvoiceSummary(contact,invoices,contacts){
+  if(!contact)return {invoices:0,total:0,paid:0,remaining:0,overpaid:0,unpaid:0,partial:0,paidInvoices:0};
+  const allInvoices=Array.isArray(invoices)?invoices:[];
+  const allContacts=Array.isArray(contacts)?contacts:[];
+  const norm=value=>String(value||"").normalize("NFKC").trim().replace(/\\s+/g," ").toLocaleLowerCase();
+  const sameName=allContacts.filter(row=>row.type==="client"&&norm(row.name)===norm(contact.name));
+  const linked=allInvoices.filter(inv=>{
+    const ids=[inv.clientContactId,inv.contactId,inv.customerId].filter(value=>value!==undefined&&value!==null&&String(value)!=="").map(String);
+    if(ids.length)return ids.includes(String(contact.id));
+    return sameName.length===1&&norm(inv.client)===norm(contact.name);
+  });
+  const summaries=linked.map(invoicePaymentSummary);
+  const cents=value=>Math.round((Number(value)||0)*100);
+  const sum=key=>summaries.reduce((total,row)=>total+cents(row[key]),0)/100;
+  return {
+    invoices:linked.length,total:sum("total"),paid:sum("paid"),remaining:sum("remaining"),overpaid:sum("overpaid"),
+    unpaid:summaries.filter(row=>row.status==="unpaid"||row.status==="legacy").length,
+    partial:summaries.filter(row=>row.status==="partial").length,
+    paidInvoices:summaries.filter(row=>row.status==="paid").length
+  };
+}
+window.rimbookCustomerInvoiceSummary=customerInvoiceSummary;
+
 function invoiceNumber(projId){
   const invs = RB.data.invoices || [];
   const projInvs = invs.filter(i => i.project === projId);
