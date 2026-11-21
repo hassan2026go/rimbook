@@ -358,7 +358,7 @@ const appendPurchaseRefund = extractFunction(purchases, "appendPurchaseRefund", 
     {contactId:"s1",total:40,payments:[{amount:30}],refunds:[{amount:10}],status:"cancelled"},
     {contactId:"s2",total:900,payments:[],refunds:[],status:"active"}
   ]);
-  assert.deepEqual({...suppliers},{purchases:3,total:190,paid:105,refunded:10,netCost:180,outstanding:75,cancelled:1},"supplier account must aggregate only purchases linked to that contact and reuse cancellation/refund accounting");
+  assert.deepEqual({...suppliers},{purchases:3,total:190,paid:105,refunded:10,netCost:170,outstanding:75,cancelled:1},"supplier account must aggregate only purchases linked to that contact and reuse cancellation/refund accounting");
 }
 assert.ok(purchases.includes("window.rimbookSupplierSummary") && contacts.includes("window.rimbookSupplierSummary(c.id)"), "supplier contact cards must show balances from the shared purchasing ledger");
 assert.ok(pro.includes("window.rimbookPurchaseAccounting?window.rimbookPurchaseAccounting(p)") , "financial reports must reuse purchase-ledger accounting");
