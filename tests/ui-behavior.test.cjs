@@ -104,7 +104,7 @@ assert.ok(activation.includes("بقيد عكسي موثق"));
 assert.ok(voiceLedger.includes('row.type==="work"'));
 assert.ok(voiceLedger.includes("لن يؤثر ذلك في أي حركة مالية"));
 assert.ok(invoices.includes("الحذف النهائي للفواتير متوقف"));
-assert.ok(activation.includes("ستبقى جميع السجلات والفواتير محفوظة"));
+assert.ok(activation.includes('row.status="archived"') && activation.includes("archivedAt=Date.now()"), "archiving keeps project history intact");
 assert.ok(activation.includes("reverseWorkEntry"));
 assert.ok(voiceLedger.includes("تصحيح بقيد عكسي"));
 assert.ok(voiceLedger.includes("تم عكسه بقيد موثق"));
