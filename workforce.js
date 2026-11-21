@@ -202,7 +202,7 @@
     const rows = RB.all("work").filter(x => x.workerId).slice().sort((a,b) => String(b.d||"").localeCompare(String(a.d||""))).slice(0,80);
     const history = rows.map(x => '<div class="item"><span><b>'+safe(x.person||workers().find(w=>w.id===x.workerId)?.name||"عامل")+'</b> · '+safe(x.ds||x.k)+'<br><small class="muted">'+safe(x.d)+' · '+(x.normalHours||0)+' ساعة عادية · '+(x.otHours||0)+' إضافي · المستحق '+money(x.workerDue)+'</small></span></div>').join("");
     return '<div class="card"><b style="font-size:17px">📅 جدول العمل واليومية</b><p class="muted">سجّل الحضور أو العطلة أو الغياب، والساعات العادية والإضافية والتأخير. تُحسب المستحقات وفق نظام أجر العامل وسياسة الشركة.</p>' +
-      '<label class="muted">العامل</label><select id="wd-worker" style="width:100%;margin:4px 0 10px" onchange="selectedWorkerId=this.value">'+selectWorkers(selectedWorkerId)+'</select>' +
+      '<label class="muted">العامل</label><select id="wd-worker" style="width:100%;margin:4px 0 10px" onchange="rimbookSetSelectedWorker(this.value)">'+selectWorkers(selectedWorkerId)+'</select>' +
       '<label class="muted">التاريخ</label><input id="wd-date" type="date" value="'+today()+'" style="width:100%;margin:4px 0 10px">' +
       '<label class="muted">حالة الدوام</label><select id="wd-status" style="width:100%;margin:4px 0 10px"><option value="work">عمل وحضور</option><option value="holiday">عطلة</option><option value="absence">غياب</option></select>' +
       '<div class="grid2"><div><label class="muted">الساعات العادية</label><input id="wd-hours" type="number" min="0" max="24" step="0.25" value="'+(Number(settings.normalHoursPerDay)||8)+'" style="width:100%;margin:4px 0 10px"></div>' +
