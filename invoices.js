@@ -6,7 +6,7 @@ function parseInvoiceAmount(value){
   const normalized=String(value??"").replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/٬/g,"").replace(/٫/g,".").replace(/,/g,".");
   return Number(normalized);
 }
-function invoicePaymentSummary(inv){
+  function invoicePaymentSummary(inv) {
   const rows=RB.all("work").filter(row=>String(row.invoiceId||"")===String(inv.id));
   const paidCents=rows.reduce((sum,row)=>sum+invoiceCents(row.rec),0);
   const totalCents=invoiceCents(invoiceTotals(inv).total);
@@ -17,7 +17,7 @@ function invoicePaymentSummary(inv){
     status:totalCents>0&&paidCents>=totalCents?"paid":paidCents>0?"partial":inv.paid?"legacy":"unpaid",
     paymentRows:rows.length
   };
-}
+  }
 window.rimbookInvoiceSummary=invoicePaymentSummary;
 
 function invoiceNumber(projId){
@@ -67,14 +67,14 @@ function addInvoiceItem(invId){
   RB.save(); render();
 }
 
-function invoiceTotals(inv){
+  function invoiceTotals(inv) {
   const subCents=(inv.items||[]).reduce((sum,it)=>sum+invoiceCents((Number(it.qty)||0)*(Number(it.price)||0)),0);
   const taxRate=Math.min(100,Math.max(0,Number(inv.tax)||0));
   const discountRate=Math.min(100,Math.max(0,Number(inv.discount)||0));
   const taxCents=Math.round(subCents*taxRate/100);
   const discountCents=Math.round(subCents*discountRate/100);
   return {sub:subCents/100,tax:taxCents/100,disc:discountCents/100,total:(subCents+taxCents-discountCents)/100};
-}
+  }
 function recordInvoicePayment(invId){
   const inv=RB.data.invoices.find(row=>String(row.id)===String(invId));
   if(!inv)return toast("لم نعثر على الفاتورة");
