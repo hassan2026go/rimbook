@@ -5,7 +5,7 @@ const D=RB.data;
 const today=()=>iso(new Date());
 const escv=s=>esc(String(s??""));
 const money=n=>(Number(n)||0).toFixed(2)+" "+(D.settings.currency||"USD");
-let pending=null, listening=false;
+let pending=null, listening=false, audioRecorder=null, audioChunks=[], audioStream=null;
 const normalize=s=>String(s||"").toLowerCase()
  .replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d))
  .replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d))
@@ -165,6 +165,53 @@ window.voiceLedgerStart=function(){
  };
  r.onend=()=>setMicState(false);
  try{r.start();}catch(e){setMicState(false);toast("الميكروفون مشغول أو لم يستجب، حاول بعد لحظة");}
+};
+
+window.voiceAudioStart=async function(){
+ if(audioRecorder&&audioRecorder.state==="recording")return toast("التسجيل الصوتي يعمل بالفعل");
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaRecorder)return toast("تسجيل الصوت غير مدعوم في هذا المتصفح");
+ try{
+  audioStream=await navigator.mediaDevices.getUserMedia({audio:true});
+  audioChunks=[];
+  audioRecorder=new MediaRecorder(audioStream);
+  audioRecorder.ondataavailable=event=>{if(event.data&&event.data.size)audioChunks.push(event.data);};
+  audioRecorder.onerror=()=>toast("حدث خطأ أثناء تسجيل الصوت");
+  audioRecorder.onstop=async()=>{
+   try{
+    const type=audioRecorder.mimeType||"audio/webm";
+    const blob=new Blob(audioChunks,{type});
+    audioStream?.getTracks().forEach(track=>track.stop());audioStream=null;
+    if(!blob.size)return toast("التسجيل فارغ؛ حاول مجدداً");
+    if(typeof ATT_DB==="undefined")return toast("تخزين المرفقات غير متاح");
+    const aid="voice-audio-"+Date.now().toString(36);
+    const name="rimbook-voice-"+today()+"."+(/mp4/i.test(type)?"m4a":"webm");
+    await ATT_DB.put(aid,{name,type,size:blob.size,blob});
+    const saved=RB.add({type:"voice_log",d:today(),body:"تسجيل صوتي محفوظ",attachments:[{aid,name,type,size:blob.size}],created:Date.now()});
+    if(!saved){await ATT_DB.del(aid);return;}
+    toast("تم حفظ التسجيل الصوتي ويمكنك تشغيله من السجل");
+    render();
+   }catch(error){toast("تعذر حفظ التسجيل الصوتي: "+(error.message||"خطأ"));}
+   finally{audioChunks=[];audioRecorder=null;audioStream=null;}
+  };
+  audioRecorder.start();
+  const status=document.getElementById("voiceAudioStatus");if(status)status.textContent="🔴 جارٍ التسجيل — اضغط إيقاف عند الانتهاء";
+  const start=document.getElementById("voiceAudioStart"),stop=document.getElementById("voiceAudioStop");
+  if(start)start.disabled=true;if(stop)stop.disabled=false;
+  toast("بدأ تسجيل الصوت");
+ }catch(error){audioStream?.getTracks().forEach(track=>track.stop());audioStream=null;toast("تعذر الوصول إلى الميكروفون؛ تحقق من الإذن");}
+};
+window.voiceAudioStop=function(){
+ if(!audioRecorder||audioRecorder.state!=="recording")return toast("لا يوجد تسجيل جارٍ");
+ audioRecorder.stop();
+ const status=document.getElementById("voiceAudioStatus");if(status)status.textContent="⏳ جارٍ حفظ التسجيل...";
+};
+window.voiceAudioPlay=async function(aid){
+ try{
+  const stored=await ATT_DB.get(aid);if(!stored||!stored.blob)return toast("ملف التسجيل غير موجود");
+  const player=document.getElementById("voice-audio-"+aid);if(!player)return;
+  if(player.dataset.loaded!=="1"){player.src=URL.createObjectURL(stored.blob);player.dataset.loaded="1";}
+  player.hidden=false;await player.play();
+ }catch(error){toast("تعذر تشغيل التسجيل الصوتي");}
 };
 window.voiceCapture=window.voiceLedgerStart;
 TABS.voice=["🎙️","السجل الصوتي"];
