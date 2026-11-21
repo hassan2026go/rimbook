@@ -72,8 +72,13 @@ window.voiceLedgerConfirm=function(){
   if(!worker)return entry;
   const daily=window.rimbookWorkerDailyRate?window.rimbookWorkerDailyRate(workerId):(Number(D.settings.dailyRate)||0);
   const holidayPercent=Math.min(100,Math.max(0,Number(D.settings.holidayPayPercent)||0));
-  const workerDue=entry.k==="work"?daily+(Number(entry.overtimePay)||0):entry.k==="holiday"?daily*holidayPercent/100:0;
-  return {...entry,workerId,person:worker.name,workerDue,workerPaid:entry.k==="payment"?(Number(entry.rec)||0):0,
+  const planned=Number(D.settings.normalHoursPerDay)||8;
+  const normalHours=entry.k==="work"?planned:0;
+  const pay=window.rimbookCalculateWorkerPay
+   ? window.rimbookCalculateWorkerPay(entry.k,daily,normalHours,0,planned,Number(entry.otHours)||0,worker.overtimeRate==null?(Number(D.settings.otRate)||0):Number(worker.overtimeRate),!!D.settings.overtimeEnabled,holidayPercent)
+   : {workerDue:entry.k==="work"?daily:entry.k==="holiday"?daily*holidayPercent/100:0,overtimePay:0};
+  const workerDue=pay.workerDue;
+  return {...entry,workerId,person:worker.name,normalHours,workerDue,overtimePay:pay.overtimePay,workerPaid:entry.k==="payment"?(Number(entry.rec)||0):0,
    workerAdvance:entry.k==="advance"?(Number(entry.advance)||0):0,due:0,rec:0,advance:0};
  });
  const workerId=entries.find(x=>x.workerId)?.workerId||null;
@@ -102,7 +107,11 @@ function voiceLedgerSaveQuick(kind,amount,workDetails){
   const daily=window.rimbookWorkerDailyRate?window.rimbookWorkerDailyRate(worker.id):(Number(D.settings.dailyRate)||0);
   const planned=Number(D.settings.normalHoursPerDay)||8;
   item.workerId=worker.id;item.person=worker.name;
-  item.workerDue=kind==="work"?daily*Math.max(0,normalHours)/planned+overtimePay:kind==="holiday"?daily*(Math.min(100,Math.max(0,Number(D.settings.holidayPayPercent)||0))/100):0;
+  const holidayPercent=Math.min(100,Math.max(0,Number(D.settings.holidayPayPercent)||0));
+   const pay=window.rimbookCalculateWorkerPay
+    ? window.rimbookCalculateWorkerPay(kind,daily,normalHours,0,planned,otHours,otRate,overtimeEnabled,holidayPercent)
+    : {workerDue:kind==="work"?daily*Math.max(0,normalHours)/planned+overtimePay:kind==="holiday"?daily*holidayPercent/100:0,overtimePay};
+   item.workerDue=pay.workerDue;item.overtimePay=pay.overtimePay;
   item.workerPaid=kind==="payment"?Number(amount)||0:0;
   item.workerAdvance=kind==="advance"?Number(amount)||0:0;
   item.due=0;item.rec=0;item.advance=0;
