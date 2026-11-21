@@ -189,11 +189,13 @@ function bindRimbookDataChannel(channel) {
     } catch (e) { toast("فشل استلام النسخة أو أن بياناتها غير صالحة"); }
   };
 }
-async function rtcInit() {
+async function rtcInit(createChannel = true) {
   rtc.pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
   rtc.pc.ondatachannel = event => bindRimbookDataChannel(event.channel);
-  const channel = rtc.pc.createDataChannel("rimbook");
-  bindRimbookDataChannel(channel);
+  if (createChannel) {
+    const channel = rtc.pc.createDataChannel("rimbook");
+    bindRimbookDataChannel(channel);
+  }
 }
 async function rtcCreateOffer(){
   rtc.shouldSend = true;
@@ -211,7 +213,7 @@ async function rtcAcceptOffer(){
   if(!code) return;
   try {
     const desc = JSON.parse(atob(code));
-    if(!rtc.pc) await rtcInit();
+    if(!rtc.pc) await rtcInit(false);
     await rtc.pc.setRemoteDescription(desc);
     const answer = await rtc.pc.createAnswer();
     await rtc.pc.setLocalDescription(answer);
