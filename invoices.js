@@ -21,7 +21,7 @@ function parseInvoiceAmount(value){
   }
 window.rimbookInvoiceSummary=invoicePaymentSummary;
 
-function customerInvoiceSummary(contact,invoices,contacts){
+function customerInvoiceSummary(contact,invoices,contacts) {
   if(!contact)return {invoices:0,total:0,paid:0,remaining:0,overpaid:0,unpaid:0,partial:0,paidInvoices:0};
   const allInvoices=Array.isArray(invoices)?invoices:[];
   const allContacts=Array.isArray(contacts)?contacts:[];
