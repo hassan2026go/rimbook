@@ -27,7 +27,8 @@ window.proAddTask=function(){
 window.proSetTaskFilter=function(f){window.proTaskFilter=f;render();};
 window.proToggleTask=function(id,done){RB.patch(id,{done});render();};
 window.proAddProject=function(){
- const name=$("ppname")?.value.trim();if(!name)return toast("اكتب اسم المشروع");\n const client=$("ppclient")?.value.trim()||"";const location=$("pplocation")?.value.trim()||"";const description=$("ppdescription")?.value.trim()||"";const startDate=$("ppstart")?.value||today();
+ const name=$("ppname")?.value.trim();if(!name)return toast("اكتب اسم المشروع");
+ const client=$("ppclient")?.value.trim()||"";const location=$("pplocation")?.value.trim()||"";const description=$("ppdescription")?.value.trim()||"";const startDate=$("ppstart")?.value||today();
  const p={id:"p"+Date.now().toString(36),name,color:"#22d3ee",client,location,description,startDate,budget:Number($("ppbudget")?.value)||0,due:$("ppdue")?.value||"",status:"active",createdAt:Date.now()};
  if(!RB.transact(data=>{data.projects.push(p);data.activeProject=p.id;}))return;
  render();toast("تم إنشاء المشروع");
