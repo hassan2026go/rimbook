@@ -27,8 +27,8 @@
     const sum = key => rows.reduce((s,x) => s + (Number(x[key]) || 0), 0);
     return {
       rows, days: rows.filter(x => x.k === "work" && !x.isReversal && !x.reversedBy).length,
-      holidays: rows.filter(x => x.k === "holiday" && !x.isReversal).length,
-      absences: rows.filter(x => x.k === "absence" && !x.isReversal).length,
+      holidays: rows.filter(x => x.k === "holiday" && !x.isReversal && !x.reversedBy).length,
+      absences: rows.filter(x => x.k === "absence" && !x.isReversal && !x.reversedBy).length,
       overtime: sum("otHours"), due: sum("workerDue"),
       paid: sum("workerPaid"), advances: sum("workerAdvance"),
       balance: sum("workerDue") - sum("workerPaid") - sum("workerAdvance")
@@ -117,8 +117,8 @@
     const normalHours = num("wd-hours"), lateHours = num("wd-late"), otHours = num("wd-ot");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return toast("تحقق من التاريخ");
     if (!["work","holiday","absence"].includes(status)) return toast("اختر حالة الدوام");
-    if (![normalHours,lateHours,otHours].every(Number.isFinite) || normalHours < 0 || lateHours < 0 || otHours < 0 || normalHours > 24 || lateHours > 24 || otHours > 24 || lateHours > normalHours) {
-      return toast("تحقق من ساعات العمل والتأخير والإضافي");
+    if (![normalHours,lateHours,otHours].every(Number.isFinite) || normalHours < 0 || lateHours < 0 || otHours < 0 || normalHours > planned || lateHours > normalHours || otHours > 24) {
+      return toast("تحقق من الساعات: الساعات العادية لا تتجاوز ساعات الدوام المعتمدة، والتأخير لا يتجاوز ساعات العمل");
     }
     const daily = workerDailyRate(worker);
     const holidayPercent = Math.min(100, Math.max(0, Number(RB.data.settings.holidayPayPercent) || 0));
@@ -126,8 +126,8 @@
       : status === "holiday" ? daily * holidayPercent / 100 : 0;
     const otRate = worker.overtimeRate == null ? Number(RB.data.settings.otRate) || 0 : Number(worker.overtimeRate) || 0;
     const overtimeEnabled = !!RB.data.settings.overtimeEnabled;
-    const overtimePay = overtimeEnabled ? otHours * otRate : 0;
-    const workerDue = Math.max(0, base + overtimePay);
+    const overtimePay = status === "work" && overtimeEnabled ? otHours * otRate : 0;
+    const workerDue = Math.round(Math.max(0, base + overtimePay) * 100) / 100;
     const labels = {work:"يوم عمل",holiday:"عطلة",absence:"غياب"};
     const row = {
       type:"work", k:status, d:date, ds:labels[status] + " — " + worker.name,
