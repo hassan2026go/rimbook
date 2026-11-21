@@ -216,6 +216,14 @@ window.voiceAudioPlay=async function(aid){
 window.voiceCapture=window.voiceLedgerStart;
 TABS.voice=["🎙️","السجل الصوتي"];
 ["employee","worker"].forEach(role=>{if(ROLES[role]&&!ROLES[role].tabs.includes("voice"))ROLES[role].tabs.splice(ROLES[role].tabs.indexOf("ledger")+1,0,"voice");});
+function voiceLogRow(l){
+ const audio=(l.attachments||[]).find(a=>String(a.type||"").startsWith("audio/"));
+ const bodyArg=JSON.stringify(l.body||"").replace(/</g,"\\u003c");
+ const play=audio
+  ? '<button onclick="voiceAudioPlay('+JSON.stringify(audio.aid)+')">▶ تشغيل التسجيل</button><audio id="voice-audio-'+escv(audio.aid)+'" controls hidden></audio>'
+  : "";
+ return '<div class="item"><span>'+escv(l.d)+'<br>'+escv(l.body)+'</span><button onclick="voiceLedgerListen('+bodyArg+')">🔊 قراءة النص</button>'+play+'<button class="danger" onclick="voiceLedgerDelete('+JSON.stringify(l.id)+')">حذف</button></div>';
+}
 VIEWS.voice=function(){
  const works=RB.all("work").slice().sort((a,b)=>(b.d||"").localeCompare(a.d||""));
  const month=document.getElementById("voiceMonth")?.value||today().slice(0,7);
@@ -235,7 +243,7 @@ VIEWS.voice=function(){
   const action=!w.isReversal&&!w.reversedBy?'<button class="danger" onclick="reverseWorkEntry(\''+w.id+'\')">تصحيح بقيد عكسي</button>':'';
   return '<div class="item"><span><b>'+escv(kind[w.k]||w.k)+'</b> · '+escv(w.ds||"")+status+'<br><small class="muted">'+escv(w.d)+' · '+(w.k==="work"?(escv(w.normalHours||0)+" ساعة عادية · "+escv(w.otHours||0)+" إضافية · أجر إضافي "+money(w.overtimePay||0))+" · ":"")+escv(w.voiceText||"إدخال يدوي")+(w.correctionReason?" · سبب التصحيح: "+escv(w.correctionReason):w.reversalReason?" · سبب التصحيح: "+escv(w.reversalReason):"")+'</small></span><b>'+money(w.due||w.rec||w.expense||w.advance)+'</b><button onclick="voiceLedgerListen('+JSON.stringify(w.voiceText||w.ds||"").replace(/</g,"\\u003c")+')">🔊</button>'+action+'</div>';
  }).join(""):'<p class="muted">لا توجد عمليات في هذا الشهر.</p>')+'</div>'+
- '<div class="card"><b>🎧 سجل العبارات الصوتية</b>'+(logs.length?logs.map(l=>'<div class="item"><span>'+escv(l.d)+'<br>'+escv(l.body)+'</span><button onclick="voiceLedgerListen('+JSON.stringify(l.body||"").replace(/</g,"\\u003c")+')">🔊 استماع</button><button class="danger" onclick="voiceLedgerDelete(\''+l.id+'\')">حذف</button></div>').join(""):'<p class="muted">لا توجد تسجيلات محفوظة بعد.</p>')+'</div>';
+ '<div class="card"><b>🎧 سجل العبارات الصوتية</b>'+(logs.length?logs.map(voiceLogRow).join(""):'<p class="muted">لا توجد تسجيلات محفوظة بعد.</p>')+'</div>';
 };
 const oldRender=window.render;
 window.render=function(){oldRender();};
