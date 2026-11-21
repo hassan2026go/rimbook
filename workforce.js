@@ -38,16 +38,22 @@
     };
   }
   function workerDailyRate(worker) {
-    const rate = Number(worker.wageRate) || 0;
+    const rate = Math.max(0,Number(worker.wageRate) || 0);
     if (worker.wageType === "weekly") return rate / Math.max(1, Number(RB.data.settings.payrollDaysPerWeek) || 6);
     if (worker.wageType === "monthly") return rate / Math.max(1, Number(RB.data.settings.payrollDaysPerMonth) || 26);
     return rate;
   }
   function calculateWorkerPay(status,daily,normalHours,lateHours,plannedHours,overtimeHours,overtimeRate,overtimeEnabled,holidayPercent) {
     const planned=Math.max(0.01,Number(plannedHours)||8);
-    const base=status==="work" ? (Number(daily)||0)*Math.max(0,(Number(normalHours)||0)-(Number(lateHours)||0))/planned
-      : status==="holiday" ? (Number(daily)||0)*Math.min(100,Math.max(0,Number(holidayPercent)||0))/100 : 0;
-    const overtimePay=status==="work"&&overtimeEnabled ? (Number(overtimeHours)||0)*(Number(overtimeRate)||0) : 0;
+    const dailyRate=Math.max(0,Number(daily)||0);
+    const normal=Math.max(0,Number(normalHours)||0);
+    const late=Math.min(normal,Math.max(0,Number(lateHours)||0));
+    const extraHours=Math.max(0,Number(overtimeHours)||0);
+    const extraRate=Math.max(0,Number(overtimeRate)||0);
+    const holidayRate=Math.min(100,Math.max(0,Number(holidayPercent)||0));
+    const base=status==="work" ? dailyRate*Math.max(0,normal-late)/planned
+      : status==="holiday" ? dailyRate*holidayRate/100 : 0;
+    const overtimePay=status==="work"&&overtimeEnabled ? extraHours*extraRate : 0;
     return {
       base:Math.round(base*100)/100,
       overtimePay:Math.round(overtimePay*100)/100,
