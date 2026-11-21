@@ -49,21 +49,25 @@ function projectOptions(projects, selected) {
   window.editProject=id=>{const p=D.projects.find(x=>x.id===id);if(!p)return;const value=prompt("اسم المشروع",p.name);if(value===null)return;const name=value.trim();if(!name)return toast("اسم المشروع لا يمكن أن يكون فارغاً");if(!RB.transact(data=>{const row=data.projects.find(x=>x.id===id);if(row)row.name=name;}))return;render();};
   window.setActiveProject=id=>{if(!RB.transact(data=>{data.activeProject=id||null;}))return;render();};
   window.delProject=id=>{
-    const project=D.projects.find(p=>p.id===id);if(!project)return;
-    const linkedItems=D.items.filter(x=>x.project===id).length;
-    const linkedInvoices=(D.invoices||[]).filter(x=>x.project===id).length;
-    const linked=linkedItems+linkedInvoices;
-    const message=linked
-      ? "يرتبط بهذا المشروع "+linked+" سجلاً أو فاتورة. سيُحذف اسم المشروع فقط، وستبقى جميع السجلات والفواتير محفوظة وتصبح عامة. هل تريد المتابعة؟"
-      : "هل تريد حذف المشروع؟";
+    const project=D.projects.find(p=>String(p.id)===String(id));if(!project)return;
+    if(project.status==="archived")return toast("هذا المشروع مؤرشف بالفعل");
+    const linkedItems=D.items.filter(x=>String(x.project||"")===String(id)).length;
+    const linkedInvoices=(D.invoices||[]).filter(x=>String(x.project||"")===String(id)).length;
+    const linkedPurchases=(D.purchases||[]).filter(x=>String(x.projectId||"")===String(id)).length;
+    const linkedWorkers=(D.workers||[]).filter(x=>String(x.projectId||"")===String(id)).length;
+    const linked=linkedItems+linkedInvoices+linkedPurchases+linkedWorkers;
+    const message="سيتم أرشفة المشروع مع الاحتفاظ بكل المهام واليوميات والحسابات والفواتير والمشتريات والارتباطات كما هي"+
+      (linked?" (السجلات المرتبطة: "+linked+").":"." )+
+      " ويمكن إعادة تنشيطه لاحقاً. هل تريد المتابعة؟";
     if(!confirm(message))return;
     if(!RB.transact(data=>{
-      data.projects=data.projects.filter(p=>p.id!==id);
-      data.items.forEach(row=>{if(row.project===id)row.project=null;});
-      (data.invoices||[]).forEach(row=>{if(row.project===id)row.project=null;});
-      if(data.activeProject===id)data.activeProject=null;
+      const row=data.projects.find(p=>String(p.id)===String(id));
+      if(!row)return;
+      row.status="archived";
+      row.archivedAt=Date.now();
+      if(String(data.activeProject||"")===String(id))data.activeProject=null;
     }))return;
-    render();toast(linked?"حُذف المشروع وبقيت السجلات والفواتير محفوظة.":"تم حذف المشروع");
+    render();toast("تمت أرشفة المشروع مع الحفاظ على سجلاته وارتباطاته");
   };
   window.addTask=()=>{const title=$v("ttitle").trim();if(!title)return toast("اكتب المهمة");if(!RB.add({type:"task",title,due:$v("tdue"),priority:$v("tpriority"),project:selectedProject(),done:false}))return;render();};
  window.toggleTask=(id,v)=>{RB.patch(id,{done:v});render();};
