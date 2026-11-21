@@ -1,0 +1,41 @@
+name: Package Rimbook fixed files
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out latest main
+        uses: actions/checkout@v4
+      - name: Package modified and repaired files
+        run: |
+          mkdir -p Rimbook-Fixed-Latest/.github/workflows Rimbook-Fixed-Latest/tests
+          cp .github/workflows/verify.yml Rimbook-Fixed-Latest/.github/workflows/
+          cp activation.js pro.js purchases.js voice-ledger.js workforce.js Rimbook-Fixed-Latest/
+          cp tests/ui-behavior.test.cjs Rimbook-Fixed-Latest/tests/
+          cat > Rimbook-Fixed-Latest/README.txt <<'EOF'
+          Rimbook - latest modified and repaired files
+          Repository: hassan2026go/rimbook
+          Branch: main
+          Included: activation.js, pro.js, purchases.js, voice-ledger.js, workforce.js,
+          tests/ui-behavior.test.cjs, .github/workflows/verify.yml
+          These are source files from the repository at the commit that triggered this workflow.
+          Copy files into the matching paths in the project. Keep a backup before replacing files.
+          EOF
+          cd Rimbook-Fixed-Latest
+          zip -qr ../Rimbook-Fixed-Latest.zip .
+      - name: Upload ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rimbook-Fixed-Latest
+          path: Rimbook-Fixed-Latest.zip
+          if-no-files-found: error
+          retention-days: 30
