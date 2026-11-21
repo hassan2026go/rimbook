@@ -224,4 +224,5 @@ assert.ok(activation.includes("تنزيل نسخة كاملة JSON") && activati
   assert.equal(data.items[1].lateHours, -1);
   assert.equal(data.items[1].workerId, "w1");
 }
-\nconsole.log("UI behavior tests passed.");
+
+console.log("UI behavior tests passed.");
