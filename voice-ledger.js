@@ -63,12 +63,25 @@ window.voiceLedgerConfirm=function(){
  if(!batch||batch.error||!Array.isArray(batch.items)||!batch.items.length)return;
  const now=Date.now();
  const makeId=()=>now.toString(36)+Math.random().toString(36).slice(2,8);
+ const entries=batch.items.map(entry=>{
+  const workerId=entry.workerId||(D.profile?.role==="worker"?D.profile.workerId:null);
+  if(!workerId)return entry;
+  const worker=(D.workers||[]).find(w=>String(w.id)===String(workerId));
+  if(!worker)return entry;
+  const daily=window.rimbookWorkerDailyRate?window.rimbookWorkerDailyRate(workerId):(Number(D.settings.dailyRate)||0);
+  const holidayPercent=Math.min(100,Math.max(0,Number(D.settings.holidayPayPercent)||0));
+  const workerDue=entry.k==="work"?daily+(Number(entry.overtimePay)||0):entry.k==="holiday"?daily*holidayPercent/100:0;
+  return {...entry,workerId,person:worker.name,workerDue,workerPaid:entry.k==="payment"?(Number(entry.rec)||0):0,
+   workerAdvance:entry.k==="advance"?(Number(entry.advance)||0):0,due:0,rec:0,advance:0};
+ });
+ const workerId=entries.find(x=>x.workerId)?.workerId||null;
+ const person=entries.find(x=>x.workerId)?.person||"";
  const ok=RB.transact(d=>{
-  batch.items.forEach(x=>d.items.push({type:"work",...x,voice:true,voiceText:batch.raw,created:now,id:makeId()}));
-  d.items.push({type:"voice_log",d:batch.date,body:batch.raw,created:now,entries:batch.items.length,id:makeId()});
+  entries.forEach(x=>d.items.push({type:"work",...x,voice:true,voiceText:batch.raw,created:now,id:makeId()}));
+  d.items.push({type:"voice_log",d:batch.date,body:batch.raw,workerId,person,created:now,entries:entries.length,id:makeId()});
  });
  if(!ok)return;
- pending=null;render();toast("تم اعتماد التسجيل وحفظه في جدول العمل");
+ pending=null;render();toast("تم اعتماد التسجيل وحفظه في سجل العمل");
 };
 window.voiceLedgerCancel=function(){pending=null;render();};
 function voiceLedgerSaveQuick(kind,amount,workDetails){
