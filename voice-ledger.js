@@ -48,8 +48,8 @@ function parseSpoken(raw){
  const workerMatch=matches[0]||profileWorker;
  const workerId=workerMatch?.id||null,person=workerMatch?.name||"";
  const out=[];
- if(hasHoliday) out.push({k:"holiday",d:date,ds:"عطلة",due:(Number(D.settings.dailyRate)||0)*(Math.min(100,Math.max(0,Number(D.settings.holidayPayPercent)||0))/100),rec:0,ot:0,project,workerId,person});
- else if(hasWork) out.push({k:"work",d:date,ds:"يوم عمل",due:Number(D.settings.dailyRate)||0,rec:0,ot:0,project,workerId,person});
+ if(hasHoliday) out.push({k:"holiday",d:date,ds:"عطلة",due:spokenDailyRate*(Math.min(100,Math.max(0,Number(D.settings.holidayPayPercent)||0))/100),rec:0,ot:0,project,workerId,person});
+ else if(hasWork) out.push({k:"work",d:date,ds:"يوم عمل",due:spokenDailyRate,rec:0,ot:0,project,workerId,person});
  if(hasPayment) out.push({k:"payment",d:date,ds:"دفعة مستلمة",due:0,rec:amount,ot:0,project,workerId,person});
  if(hasAdvance) out.push({k:"advance",d:date,ds:"سلفة للعامل",due:0,rec:0,advance:amount,ot:0,project,workerId,person});
  if(hasExpense) out.push({k:"expense",d:date,ds:"مصروف",due:0,rec:0,expense:amount,ot:0,project,workerId,person});
